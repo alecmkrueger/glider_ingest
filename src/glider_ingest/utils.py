@@ -133,7 +133,7 @@ def copy_raw_data(input_data_dir: Path, working_directory: Path, max_workers: in
 def rename_file(rename_dbd_files_path, file):
     subprocess.run([rename_dbd_files_path, file])
 
-def rename_dbd_ebd_files(working_directory: Path, max_workers: int = None):
+def rename_dbd_ebd_files(working_directory: Path, max_workers: int|None = None):
     '''
     Rename files with extensions of DBD or EBD to contain date and glider name in the input data directory
     using multithreading.
@@ -148,7 +148,7 @@ def rename_dbd_ebd_files(working_directory: Path, max_workers: int = None):
     
     working_directory = working_directory.joinpath('raw_copy')
     extensions = ['DBD', 'EBD']
-    rename_dbd_files_path = Path('rename_dbd_files').resolve()
+    rename_dbd_files_path = Path('rename_files').resolve()
 
     tasks = []
     for extension in extensions:
@@ -184,7 +184,7 @@ def convert_dbd_ebd_to_ascii(working_directory: Path, system: str = 'windows', m
     working_directory = working_directory.joinpath('raw_copy')
     
     # Define the Path object for where the dbd2asc executable is
-    dbd2asc_path = Path('dbd2asc').resolve()
+    dbd2asc_path = Path('binary2asc').resolve()
     
     # Define the data_sources
     data_sources = ['Flight', 'Science']

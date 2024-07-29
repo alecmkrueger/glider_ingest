@@ -7,8 +7,10 @@
 
 import xarray as xr
 from pathlib import Path
-from utils import delete_files_in_directory,create_directory,copy_raw_data,rename_dbd_ebd_files
-from utils import convert_dbd_ebd_to_ascii,convert_ascii_to_dataset,save_ds
+# from utils import delete_files_in_directory,create_directory,copy_raw_data,rename_dbd_ebd_files
+# from utils import convert_dbd_ebd_to_ascii,convert_ascii_to_dataset,save_ds
+from src.glider_ingest.utils import delete_files_in_directory,create_directory,copy_raw_data,rename_dbd_ebd_files
+from src.glider_ingest.utils import convert_dbd_ebd_to_ascii,convert_ascii_to_dataset,save_ds
 
 def process(glider_number:str,mission_title:str,raw_data_source:Path,working_directory:Path,output_nc_filename:str,return_ds:bool=False) -> None|xr.Dataset:
 	'''
@@ -17,6 +19,9 @@ def process(glider_number:str,mission_title:str,raw_data_source:Path,working_dir
 	Input information about the glider and mission for NetCDF metadata
 	glider_number:str = '540'
 	mission_title:str = 'Mission_44'
+
+	Input the file extensions you would like to processs as a 2d list with flight extensions first then science
+	extensions = [["DBD"] ["EBD"]]
 
 	Raw data source, from the glider SD card
 	raw_data_source = Path('../../test_data').resolve()
