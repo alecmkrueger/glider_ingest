@@ -59,7 +59,7 @@ def process(glider_number:str,mission_title:str,extensions:list,raw_data_source:
 	else:
 		return None
 
-# ds = process('540','Mission_44',extensions=['DBD','EBD'],raw_data_source=Path('../../test_data').resolve(),working_directory=Path('../../data').resolve(),output_nc_filename='test.nc',return_ds=True)
+ds = process('540','Mission_44',extensions=['DBD',None],raw_data_source=Path('../../test_data').resolve(),working_directory=Path('../../data').resolve(),output_nc_filename='test.nc',return_ds=True)
 
 
 
