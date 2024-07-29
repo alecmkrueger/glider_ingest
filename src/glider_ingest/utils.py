@@ -37,8 +37,8 @@ def delete_files_in_directory(directory:Path):
     # If so then begin finding files
     if confirmation.lower() == 'yes':
         # clear cache
-        cache_path = directory.parent.joinpath('cache')
-        [os.remove(file) for file in cache_path.rglob('*.CAC')]
+        cache_path = Path('cache').resolve()
+        [os.remove(file) for file in cache_path.rglob('*.cac')]
         # clear all files in the given directory
         for root, _, files in os.walk(directory):
             file_count = len(files)
@@ -59,7 +59,7 @@ def create_directory(data_dir:Path|None=None):
     if data_dir is None:
         data_dir = Path('data')
     # Create cache dir
-    cache_path = data_dir.parent.joinpath('cache')
+    cache_path = Path('cache')
     cache_path.mkdir(exist_ok=True)
     # Define the two data type folders
     data_types = ['processed','raw_copy']
@@ -106,7 +106,9 @@ def copy_raw_data(input_data_dir: Path, working_directory: Path, max_workers: in
             for file_extension in extensions:
                 # If the extension is CAC then we want to copy the files to the cache folder
                 if file_extension == 'CAC':
-                    output_data_path = working_directory.parent.joinpath('cache')
+                    # output_data_path = working_directory.parent.joinpath('cache')
+                    output_data_path = Path('cache')
+                    # '/home/alec-krueger/Documents/GERG/glider-ingest/src/glider_ingest/cache'
                 else:
                     output_data_path = raw_output_data_dir.joinpath(data_source, file_extension)
                 # Ensure that the directory exists (it should if the user ran the create_directory function before running this (copy_raw_data)
@@ -130,10 +132,10 @@ def copy_raw_data(input_data_dir: Path, working_directory: Path, max_workers: in
     
     print_time('Done Copying Raw files')
 
-def rename_file(rename_dbd_files_path, file):
-    subprocess.run([rename_dbd_files_path, file])
+def rename_file(rename_files_path, file):
+    subprocess.run([rename_files_path, file])
 
-def rename_dbd_ebd_files(working_directory: Path, max_workers: int|None = None):
+def rename_binary_files(working_directory: Path,extensions:list = ['DBD','EBD'], max_workers: int|None = None):
     '''
     Rename files with extensions of DBD or EBD to contain date and glider name in the input data directory
     using multithreading.
@@ -147,8 +149,8 @@ def rename_dbd_ebd_files(working_directory: Path, max_workers: int|None = None):
         max_workers = multiprocessing.cpu_count()
     
     working_directory = working_directory.joinpath('raw_copy')
-    extensions = ['DBD', 'EBD']
-    rename_dbd_files_path = Path('rename_files').resolve()
+    # extensions = ['DBD', 'EBD']
+    rename_files_path = Path('rename_files.exe').resolve()
 
     tasks = []
     for extension in extensions:
@@ -157,7 +159,7 @@ def rename_dbd_ebd_files(working_directory: Path, max_workers: int|None = None):
             tasks.append(file)
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(rename_file, rename_dbd_files_path, file) for file in tasks]
+        futures = [executor.submit(rename_file, rename_files_path, file) for file in tasks]
         
         for future in as_completed(futures):
             try:
@@ -167,11 +169,11 @@ def rename_dbd_ebd_files(working_directory: Path, max_workers: int|None = None):
 
     print_time("Done renaming dbd files")
 
-def convert_file(dbd2asc_path, raw_file, ascii_file):
-    cmd = f'{dbd2asc_path} "{raw_file}" > "{ascii_file}"'
+def convert_file(binary2asc_path, raw_file, ascii_file):
+    cmd = f'{binary2asc_path} "{raw_file}" > "{ascii_file}"'
     os.system(cmd)
 
-def convert_dbd_ebd_to_ascii(working_directory: Path, system: str = 'windows', max_workers: int = 4):
+def convert_binary_to_ascii(working_directory: Path, extensions:list = ['DBD','EBD'], max_workers: int = 4):
     '''
     Converts all DBD and EBD files to ascii in the input directory and saves them to the output directory
 
@@ -183,13 +185,13 @@ def convert_dbd_ebd_to_ascii(working_directory: Path, system: str = 'windows', m
     output_data_dir = working_directory.joinpath('processed')
     working_directory = working_directory.joinpath('raw_copy')
     
-    # Define the Path object for where the dbd2asc executable is
-    dbd2asc_path = Path('binary2asc').resolve()
-    
+    # Define the Path object for where the binary2asc executable is
+    binary2asc_path = Path('binary2asc.exe').resolve()
+
     # Define the data_sources
     data_sources = ['Flight', 'Science']
     # Define the extensions for the data sources
-    extensions = ['DBD', 'EBD']
+    # extensions = ['DBD', 'EBD']
     
     # Collect all files to be processed
     tasks = []
@@ -197,11 +199,11 @@ def convert_dbd_ebd_to_ascii(working_directory: Path, system: str = 'windows', m
         raw_files = working_directory.joinpath(data_source).joinpath(extension).rglob('*')
         for raw_file in raw_files:
             ascii_file = output_data_dir.joinpath(data_source, f'{raw_file.name}.asc')
-            tasks.append((dbd2asc_path, raw_file, ascii_file))
+            tasks.append((binary2asc_path, raw_file, ascii_file))
     
     # Process files in parallel using ThreadPoolExecutor
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(convert_file, dbd2asc_path, raw_file, ascii_file) for dbd2asc_path, raw_file, ascii_file in tasks]
+        futures = [executor.submit(convert_file, binary2asc_path, raw_file, ascii_file) for binary2asc_path, raw_file, ascii_file in tasks]
         for future in as_completed(futures):
             future.result()  # Raise any exceptions that occurred
     
@@ -211,41 +213,39 @@ def read_sci_file(file:Path) -> pd.DataFrame:
     '''
     Tries to read a file from science and filters to select a few variables
     '''
+    # Check if there are enough lines to read the file if there are not then return None,
+    # any Nones are handled by the pd.concat function in join_ascii_files
     try:
-        # Read in the data
-        df_raw = pd.read_csv(file, header=14, sep=' ', skiprows=[15,16])
+        if os.path.getsize(file) > 0:
+            # Read in the data
+            df_raw = pd.read_csv(file, header=14, sep=' ', skiprows=[15,16])
 
-        # Check if there are enough lines to read the file if there are not then return None,
-        # any Nones are handled by the pd.concat function in join_ascii_files
-        if len(df_raw)<3:
-            return None
-        
-        else:
             variables = df_raw.keys()
             # Define subsets of columns based on the presence of sci_oxy4_oxygen and sci_flbbcd_bb_units
             if 'sci_oxy4_oxygen' in variables and 'sci_flbbcd_bb_units' in variables:
-                 present_variables = ['sci_m_present_time', 'sci_flbbcd_bb_units', 'sci_flbbcd_cdom_units', 'sci_flbbcd_chlor_units', 'sci_water_pressure', 'sci_water_temp', 'sci_water_cond', 'sci_oxy4_oxygen']
+                    present_variables = ['sci_m_present_time', 'sci_flbbcd_bb_units', 'sci_flbbcd_cdom_units', 'sci_flbbcd_chlor_units', 'sci_water_pressure', 'sci_water_temp', 'sci_water_cond', 'sci_oxy4_oxygen']
 
             elif 'sci_oxy4_oxygen' in variables and 'sci_flbbcd_bb_units' not in variables:
-                 present_variables = ['sci_m_present_time', 'sci_water_pressure', 'sci_water_temp', 'sci_water_cond', 'sci_oxy4_oxygen']
+                    present_variables = ['sci_m_present_time', 'sci_water_pressure', 'sci_water_temp', 'sci_water_cond', 'sci_oxy4_oxygen']
 
             elif 'sci_oxy4_oxygen' not in variables and 'sci_flbbcd_bb_units' in variables:
-                 present_variables = ['sci_m_present_time', 'sci_flbbcd_bb_units', 'sci_flbbcd_cdom_units', 'sci_flbbcd_chlor_units', 'sci_water_pressure', 'sci_water_temp', 'sci_water_cond']
+                    present_variables = ['sci_m_present_time', 'sci_flbbcd_bb_units', 'sci_flbbcd_cdom_units', 'sci_flbbcd_chlor_units', 'sci_water_pressure', 'sci_water_temp', 'sci_water_cond']
 
             elif 'sci_oxy4_oxygen' not in variables and 'sci_flbbcd_bb_units' not in variables:
-                 present_variables = ['sci_m_present_time', 'sci_water_pressure', 'sci_water_temp', 'sci_water_cond']
+                    present_variables = ['sci_m_present_time', 'sci_water_pressure', 'sci_water_temp', 'sci_water_cond']
 
             df_filtered = df_raw[present_variables]
             # Parse the timestamp explicitly
             dates = df_filtered['sci_m_present_time'].copy()
-
             dates_datetime =  pd.to_datetime(dates, unit='s', errors='coerce')
-            # df_filtered.loc[:, 'sci_m_present_time'] = dates_datetime
             df_filtered = df_filtered.assign(sci_m_present_time=dates_datetime)
-
+            df_filtered = df_filtered.set_index('sci_m_present_time')
+        else:
+            # Set the dataframe to 
+            df_filtered = None
     except Exception as e:
-        print(f'Unable to read and skipping {file.stem}: {e}')
-        return None
+        print(f'Unable to read and skipping: {file.stem} due to {e}')
+        df_filtered = None
     
     return df_filtered
 
@@ -254,22 +254,21 @@ def read_flight_file(file:Path) -> pd.DataFrame:
     Tries to read flight data and filteres to select a few variables
     '''
     try:
-        df_raw = pd.read_csv(file, header=14, sep=' ', skiprows=[15,16])
-
-        # Check if there are enough lines to read the file if there are not then return None,
-        # any Nones are handled by the pd.concat function in join_ascii_files
-        if len(df_raw) < 3:
-            return None
-        else:
+        # Check if there are enough lines of data to read
+        if os.path.getsize(file) > 0:
+            df_raw = pd.read_csv(file, header=14, sep=' ', skiprows=[15,16])
             present_variables = ['m_present_time','m_lat','m_lon','m_pressure','m_water_depth']
             df_filtered = df_raw[present_variables]
             # Parse the timestamp explicitly
             dates = df_filtered['m_present_time'].copy()
             dates_datetime =  pd.to_datetime(dates, unit='s', errors='coerce')
             df_filtered = df_filtered.assign(m_present_time=dates_datetime)
+            df_filtered = df_filtered.set_index(['m_present_time'])
+        else:
+            df_filtered = None
     except Exception as e:
-        print(f'Unable to read and skipping {file.stem}: {e}')
-        return None
+        print(f'Unable to read and skipping: {file.stem} due to {e}')
+        df_filtered = None
     
     return df_filtered
 
@@ -305,7 +304,9 @@ def process_sci_df(df:pd.DataFrame) -> pd.DataFrame:
     Process the data to filter and calculate salinity and density
     '''
     # Remove any data with erroneous dates (outside expected dates 2010-2030)
-    df = df[(df['sci_m_present_time'] > '2010-01-01') & (df['sci_m_present_time'] < '2030-01-01')]
+    upper_date_limit = str(datetime.datetime.today().date()+datetime.timedelta(days=365))
+    df = df.reset_index()
+    df = df[(df['sci_m_present_time'] > '2010-01-01') & (df['sci_m_present_time'] < upper_date_limit)]
     # Convert pressure from db to dbar
     df['sci_water_pressure'] = df['sci_water_pressure'] * 10
     # Calculate salinity and density
@@ -426,7 +427,6 @@ def add_sci_attrs(ds:xr.Dataset,glider_id,glider,wmo_id) -> xr.Dataset:
         'valid_max': 1.0,
         'valid_min': 0.0,
         'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        # ds['sci_flbbcd_cdom_units'].attrs = {'long_name':'science cdom', 'standard_name':'cdom', 'units':'ppb'}
         ds['sci_flbbcd_cdom_units'].attrs = {'accuracy': ' ',
         'ancillary_variables': ' ',
         'instrument': 'instrument_flbbcd',
@@ -440,7 +440,6 @@ def add_sci_attrs(ds:xr.Dataset,glider_id,glider,wmo_id) -> xr.Dataset:
         'valid_max': 50.0,
         'valid_min': 0.0,
         'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        # ds['sci_flbbcd_chlor_units'].attrs = {'long_name':'science chlorophyll', 'standard_name':'chlorophyll', 'units':'\u03BCg/L'}
         ds['sci_flbbcd_chlor_units'].attrs = {'accuracy': ' ',
         'ancillary_variables': ' ',
         'instrument': 'instrument_flbbcd',
@@ -456,7 +455,6 @@ def add_sci_attrs(ds:xr.Dataset,glider_id,glider,wmo_id) -> xr.Dataset:
         'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
 
     if 'sci_oxy4_oxygen' in variables:
-        # ds['sci_oxy4_oxygen'].attrs = {'long_name':'oxygen', 'standard_name':'oxygen', 'units':'\u03BCmol/kg'}
         ds['sci_oxy4_oxygen'].attrs = {'accuracy': ' ',
         'ancillary_variables': ' ',
         'instrument': 'instrument_ctd_modular_do_sensor',
@@ -477,7 +475,6 @@ def format_sci_ds(ds:xr.Dataset) -> xr.Dataset:
     '''
     Format the science dataset by sorting and renameing variables
     '''
-    # ds = ds.rename({'index': 'sci_idx'})
     ds['index'] = np.sort(ds['sci_m_present_time'].values.astype('datetime64[s]'))
     ds = ds.drop_vars('sci_m_present_time')
     if 'sci_oxy4_oxygen' in ds.data_vars.keys():
@@ -485,9 +482,7 @@ def format_sci_ds(ds:xr.Dataset) -> xr.Dataset:
         'sci_water_cond':'conductivity','sci_water_sal':'salinity','sci_water_dens':'density','sci_flbbcd_bb_units':'turbidity',
         'sci_flbbcd_cdom_units':'cdom','sci_flbbcd_chlor_units':'chlorophyll','sci_oxy4_oxygen':'oxygen'})
     else:
-        # ds = ds.rename({'index': 'time','sci_water_pressure':'pressure','sci_water_temp':'temperature',
-        # 'sci_water_cond':'conductivity','sci_water_sal':'salinity','sci_water_dens':'density','sci_flbbcd_bb_units':'turbidity',
-        # 'sci_flbbcd_cdom_units':'cdom','sci_flbbcd_chlor_units':'chlorophyll'})
+
         ds = ds.rename({'index': 'time','sci_water_pressure':'pressure','sci_water_temp':'temperature',
         'sci_water_cond':'conductivity','sci_water_sal':'salinity','sci_water_dens':'density'})
     return ds
@@ -497,11 +492,12 @@ def process_flight_df(df:pd.DataFrame) -> pd.DataFrame:
     Process flight dataframe by filtering and calculating latitude and longitude and renaming variables
     '''
     # Exclude data before 2020 and after 2030
+    df = df.reset_index()
     df = df[(df['m_present_time'] > '2010-01-01') & (df['m_present_time'] < '2030-01-01')]
     # Convert pressure from db to dbar
     df['m_pressure'] = df['m_pressure'] * 10
     # Convert latitude and longitude to decimal degrees
-    # .round(0) will up round the decimal numebr > 0.5 to 1, which is not working
+    # .round(0) will up round the decimal number > 0.5 to 1, which is not working
     df['m_lat'] = df['m_lat'] / 100.0
     df['m_lat'] = np.sign(df['m_lat'])*(np.sign(df['m_lat'])*df['m_lat']-(np.sign(df['m_lat'])*df['m_lat'])%1 + (np.sign(df['m_lat'])*df['m_lat'])%1/0.6)
 
@@ -1013,35 +1009,6 @@ def convert_ascii_to_dataset(working_directory:Path,glider:str,mission_title:str
     # Add attributes to the mission dataset
     ds_mission = add_global_attrs(ds_mission,mission_title=mission_title,wmo_id=wmo_id,glider=glider)
 
-    # Export the mission dataset as a NetCDF
-    # return ds_mission
-    # save_ds(ds_mission,output_nc_path)
-    # ds_mission.close()
     print_time('Finished converting ascii to dataset')
     return ds_mission
-
-# def test(ds_mission):
-#     '''
-#     Create figures from the dataset to test the production
-#     '''
-#     import cmocean.cm as cmo
-#     import seaborn as sns
-#     import matplotlib.pyplot as plt
-#     sns.set_style("darkgrid")
-#     plt.figure()
-#     plt.scatter(ds_mission.salinity,ds_mission.temperature,c='C0')
-#     plt.scatter(ds_mission.g_salt,ds_mission.g_temp,c='C1',alpha=0.3)
-#     plt.figure()
-#     plt.scatter(ds_mission.time.values,ds_mission['pressure'].values,c=ds_mission.density,s=1,cmap=cmo.dense);plt.colorbar();plt.gca().invert_yaxis()
-#     plt.figure()
-#     plt.pcolormesh(ds_mission.g_time.values,ds_mission.g_pres,ds_mission.g_dens.T,cmap=cmo.dense);plt.colorbar();plt.gca().invert_yaxis()
-#     plt.figure()
-#     plt.pcolormesh(ds_mission.g_time.values,ds_mission.g_pres,ds_mission.g_hc.T,cmap=cmo.thermal);plt.colorbar();plt.contour(ds_mission.g_time.values,ds_mission.g_pres,ds_mission.g_sp.T,cmap=cmo.dense);plt.gca().invert_yaxis()
-#     plt.figure()
-#     sns.set_style("darkgrid")
-#     sns.histplot(np.diff(ds_mission['pressure'].values), kde=True, color='C0');plt.xlim(-0.2,0.5)
-
-#     for var in ds_mission.data_vars:
-#         print(var,ds_mission[var].attrs)
-
 
