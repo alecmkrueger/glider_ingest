@@ -14,6 +14,7 @@ import multiprocessing
 import uuid
 from attrs import define,field
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import platform
 
 # AUTHORS:
 # Sakib Mahmud, Texas A&M University, Geochemical and Environmental Research Group, sakib@tamu.edu
@@ -52,8 +53,6 @@ def delete_files_in_directory(directory:Path):
         print_time('Continuing without deleting files, this may cause unexpected behaviours including data duplication')
     else:
         raise ValueError("Cancelling: If you did not press escape, ensure you type 'yes' or 'no'. ")
-
-
 
 def create_directory(data_dir:Path|None=None):
     if data_dir is None:
@@ -150,10 +149,20 @@ def rename_binary_files(working_directory: Path,extensions:list = ['DBD','EBD'],
     
     working_directory = working_directory.joinpath('raw_copy')
     # extensions = ['DBD', 'EBD']
-    rename_files_path = Path('rename_files.exe').resolve()
+    current_os = platform.system()
+    if current_os == 'Linux' or current_os == 'Darwin':
+        rename_path = Path('rename_files.exe').resolve()
+    elif current_os == 'Windows':
+        rename_path = Path('windows_rename_files.exe').resolve()
+    else:
+        required_os_list = ['Windows','Linux','Darwin']
+        raise ValueError(f"Unknown Operating System, got {current_os}, must be one of {required_os_list}")
+    rename_files_path = rename_path
 
     tasks = []
     for extension in extensions:
+        if extension is None:
+            continue
         data_files = working_directory.rglob(f'*.{extension}')
         for file in data_files:
             tasks.append(file)
@@ -186,16 +195,23 @@ def convert_binary_to_ascii(working_directory: Path, extensions:list = ['DBD','E
     working_directory = working_directory.joinpath('raw_copy')
     
     # Define the Path object for where the binary2asc executable is
-    binary2asc_path = Path('binary2asc.exe').resolve()
+    current_os = platform.system()
+    if current_os == 'Linux' or current_os == 'Darwin':
+        binary2asc_path = Path('binary2asc.exe').resolve()
+    elif current_os == 'Windows':
+        binary2asc_path = Path('windows_binary2asc.exe').resolve()
+    else:
+        required_os_list = ['Windows','Linux','Darwin']
+        raise ValueError(f"Unknown Operating System, got {current_os}, must be one of {required_os_list}")
 
     # Define the data_sources
     data_sources = ['Flight', 'Science']
-    # Define the extensions for the data sources
-    # extensions = ['DBD', 'EBD']
     
     # Collect all files to be processed
     tasks = []
     for data_source, extension in zip(data_sources, extensions):
+        if extension is None:
+            continue
         raw_files = working_directory.joinpath(data_source).joinpath(extension).rglob('*')
         for raw_file in raw_files:
             ascii_file = output_data_dir.joinpath(data_source, f'{raw_file.name}.asc')
