@@ -13,7 +13,6 @@ import platform
 from utils import print_time,copy_file,rename_file,create_tasks,convert_file
 from utils import process_sci_data,process_flight_data,add_gridded_data,add_global_attrs,length_validator
 
-
 @define
 class Processor:
     '''Class to process and contain information about the raw glider data ingest'''
