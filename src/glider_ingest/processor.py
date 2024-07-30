@@ -1,22 +1,14 @@
-from attrs import define, field
-import numpy as np
-import pandas as pd
+from attrs import define,field,validators
 import xarray as xr
 from pathlib import Path
-import datetime
-import shutil
-import subprocess
 import os
-import gsw
 import multiprocessing
-import uuid
 from attrs import define,field
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor,as_completed
 import platform
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from iteration_utilities import deepflatten
 
-from utils import print_time,copy_file,rename_file,create_tasks,convert_file,convert_ascii_to_dataset,save_ds
+from utils import print_time,copy_file,rename_file,create_tasks,convert_file
+from utils import process_sci_data,process_flight_data,add_gridded_data,add_global_attrs,length_validator
 
 
 @define
@@ -26,17 +18,22 @@ class Processor:
     glider_number:str
     mission_title:str
     output_nc_filename:str
-    extensions:list = field(default=[['DBD'],['EBD']])
+    extensions:list = field(default=['DBD','EBD'],validator=length_validator)
     max_workers:int|None = field(default=None)
+    debug:bool = field(default=False)
 
-    flat_extensions:list = field(init=False)
     ds_mission:xr.Dataset = field(init=False)
+    output_nc_path:Path = field(init=False)
+
 
     def __attrs_post_init__(self):
-        self.flat_extensions()
+        self.output_nc_path = self.working_directory.joinpath('processed','nc',self.output_nc_filename)
+        if self.max_workers is None:
+            self.max_workers = multiprocessing.cpu_count()
 
-    def flatten_extensions(self):
-        self.flat_extensions = deepflatten(self.extensions)
+    def print_time_debug(self,message):
+        if self.debug:
+            print_time(message)
 
     def create_directory(self):
         # Create cache dir
@@ -77,24 +74,22 @@ class Processor:
                     file_path = os.path.join(root, file)
                     os.remove(file_path)
                 if file_count > 0:
-                    print(f"Cleaned {root}, deleted {file_count} file(s).")
-            print_time("All files have been deleted")
+                    self.print_time_debug(f"Cleaned {root}, deleted {file_count} file(s).")
+            self.print_time_debug("All files have been deleted")
         elif confirmation.lower() == 'no':
-            print_time('Continuing without deleting files, this may cause unexpected behaviours including data duplication')
+            self.print_time_debug('Continuing without deleting files, this may cause unexpected behaviours including data duplication')
         else:
             raise ValueError("Cancelling: If you did not press escape, ensure you type 'yes' or 'no'. ")    
     def copy_raw_data(self):
         '''
         Copy data from the memory card to the working directory using multithreading.
         '''
-        print_time('Copying Raw files')
-        if max_workers is None:
-            max_workers = multiprocessing.cpu_count()
+        self.print_time_debug('Copying Raw files')
         
         raw_output_data_dir = self.working_directory.joinpath('raw_copy')
         
         tasks = []
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             for data_source, extensions in zip(['Flight', 'Science'], [["DBD", "MBD", "SBD", "MLG", "CAC"], ["EBD", "NLG", "TBD", "NBD", "CAC"]]):
                 input_data_path = self.raw_data_source.joinpath(f'{data_source}_card')
                 for file_extension in extensions:
@@ -119,9 +114,9 @@ class Processor:
                 try:
                     future.result()  # Raise any exceptions that occurred
                 except Exception as e:
-                    print(f"Error copying file: {e}")
+                    self.print_time_debug(f"Error copying file: {e}")
         
-        print_time('Done Copying Raw files')
+        self.print_time_debug('Done Copying Raw files')
     def rename_binary_files(self):
         '''
         Rename files with extensions of DBD or EBD to contain date and glider name in the input data directory
@@ -130,12 +125,12 @@ class Processor:
         working_directory (pathlib.Path): Object that points to the folder that contains the files to be renamed
         max_workers (int): Maximum number of threads to use for parallel processing. Defaults to number of CPU cores.
         '''
-        print_time('Renaming dbd files')
+        self.print_time_debug('Renaming dbd files')
 
-        if max_workers is None:
-            max_workers = multiprocessing.cpu_count()
+        # if self.max_workers is None:
+        #     self.max_workers = multiprocessing.cpu_count()
         
-        working_directory = working_directory.joinpath('raw_copy')
+        working_directory = self.working_directory.joinpath('raw_copy')
         # extensions = ['DBD', 'EBD']
         current_os = platform.system()
         if current_os == 'Linux' or current_os == 'Darwin':
@@ -151,31 +146,28 @@ class Processor:
         for extension in self.extensions:
             if extension is None:
                 continue
-            data_files = working_directory.rglob(f'*.{extension}')
+            data_files = self.working_directory.rglob(f'*.{extension}')
             for file in data_files:
                 tasks.append(file)
 
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             futures = [executor.submit(rename_file, rename_files_path, file) for file in tasks]
             
             for future in as_completed(futures):
                 try:
                     future.result()  # Raise any exceptions that occurred
                 except Exception as e:
-                    print(f"Error renaming file: {e}")
+                    self.print_time_debug(f"Error renaming file: {e}")
 
-        print_time("Done renaming dbd files")
+        self.print_time_debug("Done renaming dbd files")
+
     def convert_binary_to_ascii(self):
         '''
-        Converts all DBD and EBD files to ascii in the input directory and saves them to the output directory
-
-        working_directory (pathlib.Path): Object that points to the files to convert
-        ouput_data_dir (pathlib.Path): Object that points to where the files are to be saved to
-        max_workers (int): The maximum number of threads to use for parallel processing
+        Converts binary files to ascii in the input directory and saves them to the output directory
         '''
-        print_time('Converting to ascii')
-        output_data_dir = working_directory.joinpath('processed')
-        working_directory = working_directory.joinpath('raw_copy')
+        self.print_time_debug('Converting to ascii')
+        output_data_dir = self.working_directory.joinpath('processed')
+        working_directory = self.working_directory.joinpath('raw_copy')
         
         # Define the Path object for where the binary2asc executable is
         current_os = platform.system()
@@ -188,19 +180,12 @@ class Processor:
             raise ValueError(f"Unknown Operating System, got {current_os}, must be one of {required_os_list}")
 
         # Define the data_sources
-        data_sources = [['Flight'], ['Science']]
+        data_sources = ['Flight', 'Science']
         
         # Collect all files to be processed
         tasks = []
-        for data_source, extension in zip(data_sources, extensions):
-            if extension is None:
-                continue
-            if len(extension)>1:
-                extensions = extension
-                for extension in extensions:
-                    tasks = create_tasks(working_directory,data_source,extension,output_data_dir,tasks,binary2asc_path)
-            else:
-                tasks = create_tasks(working_directory,data_source,extension,output_data_dir,tasks,binary2asc_path)
+        for data_source, extension in zip(data_sources, self.extensions):
+            tasks = create_tasks(working_directory,data_source,extension,output_data_dir,tasks,binary2asc_path)
         
         # Process files in parallel using ThreadPoolExecutor
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
@@ -208,12 +193,47 @@ class Processor:
             for future in as_completed(futures):
                 future.result()  # Raise any exceptions that occurred
         
-        print_time('Done Converting to ascii')
+        self.print_time_debug('Done Converting to ascii')
+
     def convert_ascii_to_dataset(self):
-        self.ds_mission = convert_ascii_to_dataset(working_directory=self.working_directory, glider=self.glider_number, mission_title=self.mission_title)
+        '''
+        Convert ascii data files into a single NetCDF file
+        '''
+        self.print_time_debug('Converting ascii to netcdf')
+        processed_directory = self.working_directory.joinpath('processed')
+
+        science_data_dir:Path = processed_directory.joinpath('Science')
+        flight_data_dir:Path = processed_directory.joinpath('Flight')
+
+        # output_nc_path = working_directory.joinpath('processed','nc',nc_filename)
+
+        glider_id = {'199':'Dora','307':'Reveille','308':'Howdy','540':'Stommel','541':'Sverdrup'}
+        wmo_id = {'199':'unknown','307':'4801938','308':'4801915','540':'4801916','541':'4801924'}
+        
+
+        # Process Science Data
+        ds_sci:xr.Dataset = process_sci_data(science_data_dir,glider_id,self.glider_number,wmo_id)
+
+        # Make a copy of the science dataset
+        ds_mission:xr.Dataset = ds_sci.copy()
+
+        # Process Flight Data
+        ds_fli:xr.Dataset = process_flight_data(flight_data_dir)
+
+        # Add flight data to mission dataset
+        ds_mission.update(ds_fli)
+
+        # Add gridded data to mission dataset
+        ds_mission = add_gridded_data(ds_mission)
+
+        # Add attributes to the mission dataset
+        self.ds_mission = add_global_attrs(ds_mission,mission_title=self.mission_title,wmo_id=wmo_id,glider=self.glider_number)
+
+        # self.print_time_debug('Finished converting ascii to dataset')
+        # return ds_mission
 
     def save_ds(self):
-        save_ds(ds_mission=self.ds_mission,output_nc_path=self.working_directory.joinpath('processed','nc',self.output_nc_filename))	
+        self.ds_mission.to_netcdf(self.output_nc_path)	
 
     def process(self):
         self.create_directory()
@@ -222,6 +242,8 @@ class Processor:
         self.rename_binary_files()
         self.convert_binary_to_ascii()
         self.convert_ascii_to_dataset()
+        self.save_ds()
 
     
+
     
