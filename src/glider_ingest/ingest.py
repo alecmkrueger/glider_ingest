@@ -12,25 +12,24 @@ from processor import Processor
 
 def process(raw_data_source:Path|str,working_directory:Path|str,glider_number:str,mission_title:str,extensions:list,output_nc_filename:str,return_ds:bool=False) -> None|xr.Dataset:
     '''
+
+    Function inputs:
+    * raw_data_source (Path|str): Raw data source, from the glider SD card
+    * working_directory (Path|str): Where you want the raw copy and processed data to be
+    * glider_number (str): The number of the glider, for NetCDF metadata
+    * mission_title (str): The mission title, for NetCDF metadata
+    * extensions (list): The extensions you wish to process
+    * output_nc_filename (str): The name of the output NetCDF file
+    * return_ds (bool): If you would like the output dataset to be returned. Default = False
+
     Example Parameter inputs:
-
-    Input information about the glider and mission for NetCDF metadata
-    glider_number:str = '540'
-    mission_title:str = 'Mission_44'
-
-    Input the file extensions you would like to processs as a 1d list with the flight extension first then science
-    Exammples:
-    extensions = ["DBD", "EBD"]
-    or 
-    extensions = ["SBD", "TBD"]
-
-    Raw data source, from the glider SD card
-    raw_data_source = Path('test_data').resolve()
-    Where you want the raw copy and processed data to be
-    working_directory = Path('data').resolve()
-
-    Name of the final output NetCDF file
-    output_nc_filename = 2024_mission_44.nc
+    * glider_number:str = '540'
+    * mission_title:str = 'Mission_44'
+    * extensions = ["DBD", "EBD"] or ["SBD", "TBD"]
+    * raw_data_source = Path('test_data').resolve()
+    * working_directory = Path('data').resolve()
+    * output_nc_filename = 2024_mission_44.nc
+    * return_ds = True
     '''
     if isinstance(raw_data_source,str):
         raw_data_source = Path(raw_data_source)
@@ -51,8 +50,8 @@ def process(raw_data_source:Path|str,working_directory:Path|str,glider_number:st
         return processor.ds_mission
 
 # Example:
-# ds = process('540','Mission_44',extensions=['DBD','EBD'],raw_data_source=Path('../../test_data').resolve(),
-#              working_directory=Path('../../data').resolve(),output_nc_filename='test.nc',return_ds=True)
+ds = process('540','Mission_44',extensions=['DBD','EBD'],raw_data_source=Path('../../test_data').resolve(),
+             working_directory=Path('../../data').resolve(),output_nc_filename='test.nc',return_ds=True)
 
 
 

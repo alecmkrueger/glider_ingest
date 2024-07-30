@@ -3,7 +3,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/alecmkrueger/glider_ingest">
+  <a href="https://github.com/alecmkrueger/glider-ingest">
     <img src="https://github.com/alecmkrueger/project_images/blob/main/TAMU-GERG-Glider.jpg?raw=true" alt="Logo" width="500" height="272">
   </a>
 
@@ -12,12 +12,12 @@
   <p align="center">
     Convert raw data from GERG gliders into netcdf using python
     <br />
-    <a href="https://github.com/alecmkrueger/glider_ingest"><strong>Explore the docs »</strong></a>
+    <a href="https://github.com/alecmkrueger/glider-ingest"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="https://github.com/alecmkrueger/glider_ingest/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
+    <a href="https://github.com/alecmkrueger/glider-ingest/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
     ·
-    <a href="https://github.com/alecmkrueger/glider_ingest/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+    <a href="https://github.com/alecmkrueger/glider-ingest/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
   </p>
 </div>
 
@@ -68,39 +68,33 @@ as well as ensuring the code can be easily maintained, understood, and used by o
 ## Getting Started
 
 There are three ways to get started
-* Create a conda virtual environment using the .yml file provided (preferred)
-* Create a conda virtual environment and install the dependencies yourself
-* Use an already established virtual environment and install the dependencies (not recommended)
+1. Create a fresh virtual environment using your favorite method and install the dependencies
+2. Use an already established virtual environment and install the dependencies
 
 
 
 ### Dependencies
-I have provided some commands for the dependencies
+I have provided some commands to install the dependencies using conda but you can use any package manager
 
-* #### Using the .yml file (preferred)
-    ```sh
-    conda env create -f glider_ingest.yml
-    ```
-
-* #### Creating your own virtual environment then installing dependencies
-    You can change "yourenv" to your desired environment name 
+1. #### Creating your own virtual environment then installing dependencies
+    You can change "glider_ingest" to your desired environment name 
 
     ```sh
-    conda create -n yourenv python=3.10
+    conda create -n glider_ingest python=3.12
     ```
     
     ```sh
-    conda activate yourenv
+    conda activate glider_ingest
     ```
 
     ```sh
     pip install numpy pandas xarray gsw attrs
     ```
 
-* #### Using an already established virtual environment (not recommended)
+2. #### Using an already established virtual environment
 
     ```sh
-    conda activate yourenv
+    conda activate your_env
     ```
 
     ```sh
@@ -113,7 +107,7 @@ I have provided some commands for the dependencies
 1. Verify/Install Dependencies
 1. Clone the repo
    ```sh
-   git clone https://github.com/alecmkrueger/glider_ingest.git
+   git clone https://github.com/alecmkrueger/glider-ingest.git
    ```
 
 
@@ -125,12 +119,14 @@ I have provided some commands for the dependencies
 
 Process raw data from gliders using python. 
 
-The only things that need to be changed by the user are:
-* glider id/number (used for NetCDF metadata)
-* the mission title (used for NetCDF metadata)
-* source data directory
-* processed data output directory
-* NetCDF filename
+Function inputs:
+* raw_data_source (Path|str): Raw data source, from the glider SD card
+* working_directory (Path|str): Where you want the raw copy and processed data to be
+* glider_number (str): The number of the glider, for NetCDF metadata
+* mission_title (str): The mission title, for NetCDF metadata
+* extensions (list): The extensions you wish to process
+* output_nc_filename (str): The name of the output NetCDF file
+* return_ds (bool): If you would like the output dataset to be returned. Default = False
 
 
 
@@ -164,7 +160,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 
 Alec Krueger - alecmkrueger@tamu.edu
 
-Project Link: [https://github.com/alecmkrueger/glider_ingest](https://github.com/alecmkrueger/glider_ingest)
+Project Link: [https://github.com/alecmkrueger/glider-ingest](https://github.com/alecmkrueger/glider-ingest)
 
 
 
@@ -181,16 +177,16 @@ Project Link: [https://github.com/alecmkrueger/glider_ingest](https://github.com
 
 <!-- MARKDOWN LINKS & IMAGES -->
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[contributors-shield]: https://img.shields.io/github/contributors/alecmkrueger/glider_ingest.svg?style=for-the-badge
-[contributors-url]: https://github.com/alecmkrueger/glider_ingest/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/alecmkrueger/glider_ingest.svg?style=for-the-badge
-[forks-url]: https://github.com/alecmkrueger/glider_ingest/network/members
-[stars-shield]: https://img.shields.io/github/stars/alecmkrueger/glider_ingest.svg?style=for-the-badge
-[stars-url]: https://github.com/alecmkrueger/glider_ingest/stargazers
-[issues-shield]: https://img.shields.io/github/issues/alecmkrueger/glider_ingest.svg?style=for-the-badge
-[issues-url]: https://github.com/alecmkrueger/glider_ingest/issues
-[license-shield]: https://img.shields.io/github/license/alecmkrueger/glider_ingest.svg?style=for-the-badge
-[license-url]: https://github.com/alecmkrueger/glider_ingest/LICENSE
+[contributors-shield]: https://img.shields.io/github/contributors/alecmkrueger/glider-ingest.svg?style=for-the-badge
+[contributors-url]: https://github.com/alecmkrueger/glider-ingest/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/alecmkrueger/glider-ingest.svg?style=for-the-badge
+[forks-url]: https://github.com/alecmkrueger/glider-ingest/network/members
+[stars-shield]: https://img.shields.io/github/stars/alecmkrueger/glider-ingest.svg?style=for-the-badge
+[stars-url]: https://github.com/alecmkrueger/glider-ingest/stargazers
+[issues-shield]: https://img.shields.io/github/issues/alecmkrueger/glider-ingest.svg?style=for-the-badge
+[issues-url]: https://github.com/alecmkrueger/glider-ingest/issues
+[license-shield]: https://img.shields.io/github/license/alecmkrueger/glider-ingest.svg?style=for-the-badge
+[license-url]: https://github.com/alecmkrueger/glider-ingest/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/aleckrueger
 [product-screenshot]: images/screenshot.png
