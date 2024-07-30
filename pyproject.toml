@@ -16,6 +16,7 @@ attrs = "^23.2.0"
 gsw = "^3.6.19"
 scipy = "^1.14.0"
 netcdf4 = "^1.7.1.post1"
+iteration-utilities = "^0.12.1"
 
 
 [build-system]

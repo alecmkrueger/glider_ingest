@@ -17,12 +17,15 @@ def process(glider_number:str,mission_title:str,extensions:list,raw_data_source:
 	mission_title:str = 'Mission_44'
 
 	Input the file extensions you would like to processs as a 1d list with flight extensions first then science
+	Exammples:
 	extensions = ["DBD", "EBD"]
 	or 
 	extensions = ["SBD", "TBD"]
-	of 
-	extensions = ['DBD', None]
-
+	or 
+	extensions = ["DBD", None]
+	or
+    extensions = [None, "EBD"]
+	
 	Raw data source, from the glider SD card
 	raw_data_source = Path('../../test_data').resolve()
 	Where you want the raw copy and processed data to be
@@ -44,7 +47,7 @@ def process(glider_number:str,mission_title:str,extensions:list,raw_data_source:
 	# Use rename_dbd_files.exe to add metadata from the dbd and ebd files to their filenames
 	rename_binary_files(working_directory=working_directory,extensions=extensions, max_workers=8)
 
-	# Use dbd2asc.exe to convert the binary dbd and ebd files to ascii files
+	# Use binary2asc.exe to convert the binary dbd and ebd files to ascii files
 	convert_binary_to_ascii(working_directory=working_directory,extensions=extensions, max_workers=8)
 
 	# Combine all ascii files into a single NetCDF with gridded data

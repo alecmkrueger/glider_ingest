@@ -32,198 +32,207 @@ def print_time(message):
     # Print out the message
     print(whole_message)
 
-def delete_files_in_directory(directory:Path):
-    # Check if the user wishes to delete all files in the directory
-    confirmation = input(f"Are you sure you want to delete all files in '{directory}' and its subdirectories? Type 'yes' to confirm, 'no' to continue without deleting files, press escape to cancel and end ")
-    # If so then begin finding files
-    if confirmation.lower() == 'yes':
-        # clear cache
-        cache_path = Path('cache').resolve()
-        [os.remove(file) for file in cache_path.rglob('*.cac')]
-        # clear all files in the given directory
-        for root, _, files in os.walk(directory):
-            file_count = len(files)
-            for file in files:
-                file_path = os.path.join(root, file)
-                os.remove(file_path)
-            if file_count > 0:
-                print(f"Cleaned {root}, deleted {file_count} file(s).")
-        print_time("All files have been deleted")
-    elif confirmation.lower() == 'no':
-        print_time('Continuing without deleting files, this may cause unexpected behaviours including data duplication')
-    else:
-        raise ValueError("Cancelling: If you did not press escape, ensure you type 'yes' or 'no'. ")
+# def delete_files_in_directory(directory:Path):
+#     # Check if the user wishes to delete all files in the directory
+#     confirmation = input(f"Are you sure you want to delete all files in '{directory}' and its subdirectories? Type 'yes' to confirm, 'no' to continue without deleting files, press escape to cancel and end ")
+#     # If so then begin finding files
+#     if confirmation.lower() == 'yes':
+#         # clear cache
+#         cache_path = Path('cache').resolve()
+#         [os.remove(file) for file in cache_path.rglob('*.cac')]
+#         # clear all files in the given directory
+#         for root, _, files in os.walk(directory):
+#             file_count = len(files)
+#             for file in files:
+#                 file_path = os.path.join(root, file)
+#                 os.remove(file_path)
+#             if file_count > 0:
+#                 print(f"Cleaned {root}, deleted {file_count} file(s).")
+#         print_time("All files have been deleted")
+#     elif confirmation.lower() == 'no':
+#         print_time('Continuing without deleting files, this may cause unexpected behaviours including data duplication')
+#     else:
+#         raise ValueError("Cancelling: If you did not press escape, ensure you type 'yes' or 'no'. ")
 
-def create_directory(data_dir:Path|None=None):
-    if data_dir is None:
-        data_dir = Path('data')
-    # Create cache dir
-    cache_path = Path('cache')
-    cache_path.mkdir(exist_ok=True)
-    # Define the two data type folders
-    data_types = ['processed','raw_copy']
-    # Define the three processed folders
-    processed_data_types = ['Flight','nc','Science']
-    # Define the raw data type folders by the file extension of the files to be stored
-    raw_flight_extensions = ["DBD", "MBD", "SBD", "MLG"]
-    raw_science_extensions = ["EBD", "NLG", "TBD", "NBD"]
-    # Loop through the two data type folders
-    for dtype in data_types:
-        if dtype == 'processed':
-            for processed_dtype in processed_data_types:
-                # Example directory being created: data_dir/processed/Flight
-                os.makedirs(data_dir.joinpath(dtype, processed_dtype), exist_ok=True)
-        elif dtype == 'raw_copy':
-            # Package Flight and Science with their respective data type folders (extensions)
-            for data_source,extensions in zip(['Flight','Science'],[raw_flight_extensions,raw_science_extensions]):
-                for extension in extensions:
-                    # Example directory being created: data_dir/raw_copy/Flight/DBD
-                    os.makedirs(data_dir.joinpath(dtype ,data_source, extension), exist_ok=True)
+# def create_directory(data_dir:Path|None=None):
+#     if data_dir is None:
+#         data_dir = Path('data')
+#     # Create cache dir
+#     cache_path = Path('cache')
+#     cache_path.mkdir(exist_ok=True)
+#     # Define the two data type folders
+#     data_types = ['processed','raw_copy']
+#     # Define the three processed folders
+#     processed_data_types = ['Flight','nc','Science']
+#     # Define the raw data type folders by the file extension of the files to be stored
+#     raw_flight_extensions = ["DBD", "MBD", "SBD", "MLG"]
+#     raw_science_extensions = ["EBD", "NLG", "TBD", "NBD"]
+#     # Loop through the two data type folders
+#     for dtype in data_types:
+#         if dtype == 'processed':
+#             for processed_dtype in processed_data_types:
+#                 # Example directory being created: data_dir/processed/Flight
+#                 os.makedirs(data_dir.joinpath(dtype, processed_dtype), exist_ok=True)
+#         elif dtype == 'raw_copy':
+#             # Package Flight and Science with their respective data type folders (extensions)
+#             for data_source,extensions in zip(['Flight','Science'],[raw_flight_extensions,raw_science_extensions]):
+#                 for extension in extensions:
+#                     # Example directory being created: data_dir/raw_copy/Flight/DBD
+#                     os.makedirs(data_dir.joinpath(dtype ,data_source, extension), exist_ok=True)
 
 def copy_file(input_file_path, output_file_path):
     shutil.copy2(input_file_path, output_file_path)
 
-def copy_raw_data(input_data_dir: Path, working_directory: Path, max_workers: int|None = None):
-    '''
-    Copy data from the memory card to the working directory using multithreading.
-    This will also create the folders to hold the data if they do not exist yet.
+# def copy_raw_data(input_data_dir: Path, working_directory: Path, max_workers: int|None = None):
+#     '''
+#     Copy data from the memory card to the working directory using multithreading.
+#     This will also create the folders to hold the data if they do not exist yet.
 
-    input_data_dir (pathlib.Path): Object that points to the memory card from the buoy
-    working_directory (pathlib.Path): Object that points to where we want the copies to go
-    max_workers (int): Maximum number of threads to use for parallel processing. Defaults to the number of CPU cores.
-    '''
-    print_time('Copying Raw files')
-    if max_workers is None:
-        max_workers = multiprocessing.cpu_count()
+#     input_data_dir (pathlib.Path): Object that points to the memory card from the buoy
+#     working_directory (pathlib.Path): Object that points to where we want the copies to go
+#     max_workers (int): Maximum number of threads to use for parallel processing. Defaults to the number of CPU cores.
+#     '''
+#     print_time('Copying Raw files')
+#     if max_workers is None:
+#         max_workers = multiprocessing.cpu_count()
     
-    raw_output_data_dir = working_directory.joinpath('raw_copy')
+#     raw_output_data_dir = working_directory.joinpath('raw_copy')
     
-    tasks = []
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        for data_source, extensions in zip(['Flight', 'Science'], [["DBD", "MBD", "SBD", "MLG", "CAC"], ["EBD", "NLG", "TBD", "NBD", "CAC"]]):
-            input_data_path = input_data_dir.joinpath(f'{data_source}_card')
-            for file_extension in extensions:
-                # If the extension is CAC then we want to copy the files to the cache folder
-                if file_extension == 'CAC':
-                    # output_data_path = working_directory.parent.joinpath('cache')
-                    output_data_path = Path('cache')
-                    # '/home/alec-krueger/Documents/GERG/glider-ingest/src/glider_ingest/cache'
-                else:
-                    output_data_path = raw_output_data_dir.joinpath(data_source, file_extension)
-                # Ensure that the directory exists (it should if the user ran the create_directory function before running this (copy_raw_data)
-                output_data_path.mkdir(parents=True, exist_ok=True)
-                # Find all of the files with the file extension 
-                input_files = input_data_path.rglob(f'*.{file_extension}')
-                # Loop through the files with matching extensions
-                for input_file_path in input_files:
-                    # Define where the file will be placed
-                    output_file_path = output_data_path.joinpath(input_file_path.name)
-                    # Append the input and output file paths to a list
-                    tasks.append((input_file_path, output_file_path))
-        # Queue the copy_file function using multiprocessing on the input and output file paths
-        futures = [executor.submit(copy_file, input_file_path, output_file_path) for input_file_path, output_file_path in tasks]
-        # Perform the multiprocessing
-        for future in as_completed(futures):
-            try:
-                future.result()  # Raise any exceptions that occurred
-            except Exception as e:
-                print(f"Error copying file: {e}")
+#     tasks = []
+#     with ThreadPoolExecutor(max_workers=max_workers) as executor:
+#         for data_source, extensions in zip(['Flight', 'Science'], [["DBD", "MBD", "SBD", "MLG", "CAC"], ["EBD", "NLG", "TBD", "NBD", "CAC"]]):
+#             input_data_path = input_data_dir.joinpath(f'{data_source}_card')
+#             for file_extension in extensions:
+#                 # If the extension is CAC then we want to copy the files to the cache folder
+#                 if file_extension == 'CAC':
+#                     # output_data_path = working_directory.parent.joinpath('cache')
+#                     output_data_path = Path('cache')
+#                     # '/home/alec-krueger/Documents/GERG/glider-ingest/src/glider_ingest/cache'
+#                 else:
+#                     output_data_path = raw_output_data_dir.joinpath(data_source, file_extension)
+#                 # Ensure that the directory exists (it should if the user ran the create_directory function before running this (copy_raw_data)
+#                 output_data_path.mkdir(parents=True, exist_ok=True)
+#                 # Find all of the files with the file extension 
+#                 input_files = input_data_path.rglob(f'*.{file_extension}')
+#                 # Loop through the files with matching extensions
+#                 for input_file_path in input_files:
+#                     # Define where the file will be placed
+#                     output_file_path = output_data_path.joinpath(input_file_path.name)
+#                     # Append the input and output file paths to a list
+#                     tasks.append((input_file_path, output_file_path))
+#         # Queue the copy_file function using multiprocessing on the input and output file paths
+#         futures = [executor.submit(copy_file, input_file_path, output_file_path) for input_file_path, output_file_path in tasks]
+#         # Perform the multiprocessing
+#         for future in as_completed(futures):
+#             try:
+#                 future.result()  # Raise any exceptions that occurred
+#             except Exception as e:
+#                 print(f"Error copying file: {e}")
     
-    print_time('Done Copying Raw files')
+#     print_time('Done Copying Raw files')
 
 def rename_file(rename_files_path, file):
     subprocess.run([rename_files_path, file])
 
-def rename_binary_files(working_directory: Path,extensions:list = ['DBD','EBD'], max_workers: int|None = None):
-    '''
-    Rename files with extensions of DBD or EBD to contain date and glider name in the input data directory
-    using multithreading.
+# def rename_binary_files(working_directory: Path,extensions:list = [['DBD'],['EBD']], max_workers: int|None = None):
+#     '''
+#     Rename files with extensions of DBD or EBD to contain date and glider name in the input data directory
+#     using multithreading.
 
-    working_directory (pathlib.Path): Object that points to the folder that contains the files to be renamed
-    max_workers (int): Maximum number of threads to use for parallel processing. Defaults to number of CPU cores.
-    '''
-    print_time('Renaming dbd files')
+#     working_directory (pathlib.Path): Object that points to the folder that contains the files to be renamed
+#     max_workers (int): Maximum number of threads to use for parallel processing. Defaults to number of CPU cores.
+#     '''
+#     print_time('Renaming dbd files')
 
-    if max_workers is None:
-        max_workers = multiprocessing.cpu_count()
+#     if max_workers is None:
+#         max_workers = multiprocessing.cpu_count()
     
-    working_directory = working_directory.joinpath('raw_copy')
-    # extensions = ['DBD', 'EBD']
-    current_os = platform.system()
-    if current_os == 'Linux' or current_os == 'Darwin':
-        rename_path = Path('rename_files.exe').resolve()
-    elif current_os == 'Windows':
-        rename_path = Path('windows_rename_files.exe').resolve()
-    else:
-        required_os_list = ['Windows','Linux','Darwin']
-        raise ValueError(f"Unknown Operating System, got {current_os}, must be one of {required_os_list}")
-    rename_files_path = rename_path
+#     working_directory = working_directory.joinpath('raw_copy')
+#     # extensions = ['DBD', 'EBD']
+#     current_os = platform.system()
+#     if current_os == 'Linux' or current_os == 'Darwin':
+#         rename_path = Path('rename_files.exe').resolve()
+#     elif current_os == 'Windows':
+#         rename_path = Path('windows_rename_files.exe').resolve()
+#     else:
+#         required_os_list = ['Windows','Linux','Darwin']
+#         raise ValueError(f"Unknown Operating System, got {current_os}, must be one of {required_os_list}")
+#     rename_files_path = rename_path
 
-    tasks = []
-    for extension in extensions:
-        if extension is None:
-            continue
-        data_files = working_directory.rglob(f'*.{extension}')
-        for file in data_files:
-            tasks.append(file)
+#     tasks = []
+#     for extension in extensions:
+#         if extension is None:
+#             continue
+#         data_files = working_directory.rglob(f'*.{extension}')
+#         for file in data_files:
+#             tasks.append(file)
 
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(rename_file, rename_files_path, file) for file in tasks]
+#     with ThreadPoolExecutor(max_workers=max_workers) as executor:
+#         futures = [executor.submit(rename_file, rename_files_path, file) for file in tasks]
         
-        for future in as_completed(futures):
-            try:
-                future.result()  # Raise any exceptions that occurred
-            except Exception as e:
-                print(f"Error renaming file: {e}")
+#         for future in as_completed(futures):
+#             try:
+#                 future.result()  # Raise any exceptions that occurred
+#             except Exception as e:
+#                 print(f"Error renaming file: {e}")
 
-    print_time("Done renaming dbd files")
+#     print_time("Done renaming dbd files")
 
 def convert_file(binary2asc_path, raw_file, ascii_file):
     cmd = f'{binary2asc_path} "{raw_file}" > "{ascii_file}"'
     os.system(cmd)
 
-def convert_binary_to_ascii(working_directory: Path, extensions:list = ['DBD','EBD'], max_workers: int = 4):
-    '''
-    Converts all DBD and EBD files to ascii in the input directory and saves them to the output directory
+def create_tasks(working_directory,data_source,extension,output_data_dir,tasks,binary2asc_path):
+    raw_files = working_directory.joinpath(data_source).joinpath(extension).rglob('*')
+    for raw_file in raw_files:
+        ascii_file = output_data_dir.joinpath(data_source, f'{raw_file.name}.asc')
+        tasks.append((binary2asc_path, raw_file, ascii_file))
+    return tasks
 
-    working_directory (pathlib.Path): Object that points to the files to convert
-    ouput_data_dir (pathlib.Path): Object that points to where the files are to be saved to
-    max_workers (int): The maximum number of threads to use for parallel processing
-    '''
-    print_time('Converting to ascii')
-    output_data_dir = working_directory.joinpath('processed')
-    working_directory = working_directory.joinpath('raw_copy')
-    
-    # Define the Path object for where the binary2asc executable is
-    current_os = platform.system()
-    if current_os == 'Linux' or current_os == 'Darwin':
-        binary2asc_path = Path('binary2asc.exe').resolve()
-    elif current_os == 'Windows':
-        binary2asc_path = Path('windows_binary2asc.exe').resolve()
-    else:
-        required_os_list = ['Windows','Linux','Darwin']
-        raise ValueError(f"Unknown Operating System, got {current_os}, must be one of {required_os_list}")
+# def convert_binary_to_ascii(working_directory: Path, extensions:list = [['DBD'],['EBD']], max_workers: int = 4):
+#     '''
+#     Converts all DBD and EBD files to ascii in the input directory and saves them to the output directory
 
-    # Define the data_sources
-    data_sources = ['Flight', 'Science']
+#     working_directory (pathlib.Path): Object that points to the files to convert
+#     ouput_data_dir (pathlib.Path): Object that points to where the files are to be saved to
+#     max_workers (int): The maximum number of threads to use for parallel processing
+#     '''
+#     print_time('Converting to ascii')
+#     output_data_dir = working_directory.joinpath('processed')
+#     working_directory = working_directory.joinpath('raw_copy')
     
-    # Collect all files to be processed
-    tasks = []
-    for data_source, extension in zip(data_sources, extensions):
-        if extension is None:
-            continue
-        raw_files = working_directory.joinpath(data_source).joinpath(extension).rglob('*')
-        for raw_file in raw_files:
-            ascii_file = output_data_dir.joinpath(data_source, f'{raw_file.name}.asc')
-            tasks.append((binary2asc_path, raw_file, ascii_file))
+#     # Define the Path object for where the binary2asc executable is
+#     current_os = platform.system()
+#     if current_os == 'Linux' or current_os == 'Darwin':
+#         binary2asc_path = Path('binary2asc.exe').resolve()
+#     elif current_os == 'Windows':
+#         binary2asc_path = Path('windows_binary2asc.exe').resolve()
+#     else:
+#         required_os_list = ['Windows','Linux','Darwin']
+#         raise ValueError(f"Unknown Operating System, got {current_os}, must be one of {required_os_list}")
+
+#     # Define the data_sources
+#     data_sources = [['Flight'], ['Science']]
     
-    # Process files in parallel using ThreadPoolExecutor
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = [executor.submit(convert_file, binary2asc_path, raw_file, ascii_file) for binary2asc_path, raw_file, ascii_file in tasks]
-        for future in as_completed(futures):
-            future.result()  # Raise any exceptions that occurred
+#     # Collect all files to be processed
+#     tasks = []
+#     for data_source, extension in zip(data_sources, extensions):
+#         if extension is None:
+#             continue
+#         if len(extension)>1:
+#             extensions = extension
+#             for extension in extensions:
+#                 tasks = create_tasks(working_directory,data_source,extension,output_data_dir,tasks,binary2asc_path)
+#         else:
+#             tasks = create_tasks(working_directory,data_source,extension,output_data_dir,tasks,binary2asc_path)
     
-    print_time('Done Converting to ascii')
+#     # Process files in parallel using ThreadPoolExecutor
+#     with ThreadPoolExecutor(max_workers=max_workers) as executor:
+#         futures = [executor.submit(convert_file, binary2asc_path, raw_file, ascii_file) for binary2asc_path, raw_file, ascii_file in tasks]
+#         for future in as_completed(futures):
+#             future.result()  # Raise any exceptions that occurred
+    
+#     print_time('Done Converting to ascii')
 
 def read_sci_file(file:Path) -> pd.DataFrame:
     '''
