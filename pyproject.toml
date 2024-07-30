@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "glider-ingest"
+version = "1.0.6"
+description = "Package for GERG to ingest raw glider data into NetCDF files"
+authors = ["Alec <alecmkrueger@tamu.edu>"]
+readme = "README.md"
+packages = [{include = "glider_ingest", from = "src"}]
+
+
+[tool.poetry.dependencies]
+python = "^3.12"
+numpy = "^2.0.1"
+pandas = "^2.2.2"
+xarray = "^2024.6.0"
+attrs = "^23.2.0"
+gsw = "^3.6.19"
+scipy = "^1.14.0"
+netcdf4 = "^1.7.1.post1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
