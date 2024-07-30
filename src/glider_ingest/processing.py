@@ -1,3 +1,6 @@
+'''
+Module containing the function to run the glider ingest process
+'''
 # AUTHORS:
 # Alec Krueger, Texas A&M University, Geochemical and Environmental Research Group, alecmkrueger@tamu.edu
 # Sakib Mahmud, Texas A&M University, Geochemical and Environmental Research Group, sakib@tamu.edu
@@ -38,8 +41,9 @@ def process(glider_number:str,mission_title:str,extensions:list,raw_data_source:
     if return_ds:
         return processor.ds_mission
 
-ds = process('540','Mission_44',extensions=['DBD','EBD'],raw_data_source=Path('../../test_data').resolve(),
-             working_directory=Path('../../data').resolve(),output_nc_filename='test.nc',return_ds=True)
+# Example:
+# ds = process('540','Mission_44',extensions=['DBD','EBD'],raw_data_source=Path('../../test_data').resolve(),
+#              working_directory=Path('../../data').resolve(),output_nc_filename='test.nc',return_ds=True)
 
 
 

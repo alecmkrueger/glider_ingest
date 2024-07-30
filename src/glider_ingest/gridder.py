@@ -1,9 +1,11 @@
+'''
+Module containing the Gridder class
+'''
 from attrs import define,field
 import numpy as np
 import pandas as pd
 import xarray as xr
 import gsw
-
 
 @define
 class Gridder:
@@ -75,6 +77,7 @@ class Gridder:
         for var in var_names:
             self.data_arrays[var] = np.empty((self.xx, self.yy))
             self.data_arrays[var].fill(np.nan)
+
     def add_attrs(self):
         self.ds_gridded['g_temp'].attrs = {'long_name': 'Gridded Temperature',
         'observation_type': 'calculated',
@@ -190,7 +193,6 @@ class Gridder:
         'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
 
     def create_gridded_dataset(self):
-        # print_time('Creating Gridded Data')
         for ttt in range(self.xx):
             tds:xr.Dataset = self.ds.sel(time=slice(str(self.int_time[ttt]),str(self.int_time[ttt+1]))).copy()
             if len(tds.time) > 0:
@@ -239,4 +241,3 @@ class Gridder:
         self.ds_gridded['g_depth'] = xr.DataArray(dep,[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
 
         self.add_attrs()
-        # print_time('Finished Creating Gridded Data')

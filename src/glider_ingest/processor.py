@@ -1,4 +1,7 @@
-from attrs import define,field,validators
+'''
+Module containing the Processor class
+'''
+from attrs import define,field
 import xarray as xr
 from pathlib import Path
 import os
