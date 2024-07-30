@@ -10,7 +10,7 @@ import xarray as xr
 from pathlib import Path
 from processor import Processor
 
-def process(raw_data_source:Path,working_directory:Path,glider_number:str,mission_title:str,extensions:list,output_nc_filename:str,return_ds:bool=False) -> None|xr.Dataset:
+def process(raw_data_source:Path|str,working_directory:Path|str,glider_number:str,mission_title:str,extensions:list,output_nc_filename:str,return_ds:bool=False) -> None|xr.Dataset:
     '''
     Example Parameter inputs:
 
@@ -32,6 +32,17 @@ def process(raw_data_source:Path,working_directory:Path,glider_number:str,missio
     Name of the final output NetCDF file
     output_nc_filename = 2024_mission_44.nc
     '''
+    if isinstance(raw_data_source,str):
+        raw_data_source = Path(raw_data_source)
+    if isinstance(working_directory,str):
+        working_directory = Path(working_directory)
+
+    if not raw_data_source.exists():
+        raise ValueError(f'Raw data source directory does not exist: {raw_data_source}')
+
+    if not working_directory.exists():
+        raise ValueError(f'Working directory does not exist: {working_directory}')
+    
     processor = Processor(raw_data_source=raw_data_source,working_directory=working_directory,glider_number=glider_number,
                           mission_title=mission_title,output_nc_filename=output_nc_filename,extensions=extensions)
     processor.process()
