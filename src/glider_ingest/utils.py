@@ -24,6 +24,7 @@ from gridder import Gridder
 
 # Define functions and classes
 def print_time(message):
+    '''Add the current time to the end of a message'''
     # Get current time
     current_time = datetime.datetime.today().strftime('%H:%M:%S')
     # Add time to message
@@ -32,21 +33,25 @@ def print_time(message):
     print(whole_message)
 
 def length_validator(instance, attribute, value):
-    """Validator to ensure the attribute has exactly length 2."""
+    '''Validator to ensure the attribute has exactly length 2.'''
     if len(value) != 2:
         raise ValueError(f"The '{attribute.name}' attribute must have a length of exactly 2.")
 
 def copy_file(input_file_path, output_file_path):
+    '''Use shutil to copy and the input file to the output location'''
     shutil.copy2(input_file_path, output_file_path)
 
 def rename_file(rename_files_path, file):
+    '''Use subprocess to run the executable file with the rename_files_path input'''
     subprocess.run([rename_files_path, file])
 
 def convert_file(binary2asc_path, raw_file, ascii_file):
+    '''Use os.system to run the binary2asc executable on the raw file and output the ascii_file'''
     cmd = f'{binary2asc_path} "{raw_file}" > "{ascii_file}"'
     os.system(cmd)
 
 def create_tasks(working_directory,data_source,extension,output_data_dir,tasks,binary2asc_path):
+    '''Create tasks for the ThreadPoolExecutor in the convert_binary_to_ascii function'''
     raw_files = working_directory.joinpath(data_source).joinpath(extension).rglob('*')
     for raw_file in raw_files:
         ascii_file = output_data_dir.joinpath(data_source, f'{raw_file.name}.asc')
@@ -54,9 +59,7 @@ def create_tasks(working_directory,data_source,extension,output_data_dir,tasks,b
     return tasks
 
 def read_sci_file(file:Path) -> pd.DataFrame:
-    '''
-    Tries to read a file from science and filters to select a few variables
-    '''
+    '''Tries to read a file from science and filters to select a few variables'''
     # Check if there are enough lines to read the file if there are not then return None,
     # any Nones are handled by the pd.concat function in join_ascii_files
     try:
@@ -94,9 +97,7 @@ def read_sci_file(file:Path) -> pd.DataFrame:
     return df_filtered
 
 def read_flight_file(file:Path) -> pd.DataFrame:
-    '''
-    Tries to read flight data and filteres to select a few variables
-    '''
+    '''Tries to read flight data and filteres to select a few variables'''
     try:
         # Check if there are enough lines of data to read
         if os.path.getsize(file) > 0:
@@ -116,15 +117,8 @@ def read_flight_file(file:Path) -> pd.DataFrame:
     
     return df_filtered
 
-
 def join_ascii_files(files, file_reader, max_workers=None) -> pd.DataFrame:
-    '''
-    Uses ThreadPoolExecutor to read all files using a file reader function then concatenates all the files.
-    
-    files (list): List of file paths to read.
-    file_reader (function): Function to read a single file.
-    max_workers (int): Maximum number of threads to use for parallel processing. Defaults to number of CPU cores.
-    '''
+    '''Uses ThreadPoolExecutor to read all files using a file reader function then concatenates all the files.'''
     if max_workers is None:
         max_workers = multiprocessing.cpu_count()
 
@@ -144,9 +138,7 @@ def join_ascii_files(files, file_reader, max_workers=None) -> pd.DataFrame:
     return df_concat
 
 def process_sci_df(df:pd.DataFrame) -> pd.DataFrame:
-    '''
-    Process the data to filter and calculate salinity and density
-    '''
+    '''Process the data to filter and calculate salinity and density'''
     # Remove any data with erroneous dates (outside expected dates 2010-2030)
     upper_date_limit = str(datetime.datetime.today().date()+datetime.timedelta(days=365))
     df = df.reset_index()
@@ -160,9 +152,7 @@ def process_sci_df(df:pd.DataFrame) -> pd.DataFrame:
     return df
 
 def convert_sci_df_to_ds(df:pd.DataFrame,glider_id:dict,glider:str) -> xr.Dataset:
-    '''
-    Convert the given science dataframe to a xarray dataset
-    '''
+    '''Convert the given science dataframe to a xarray dataset'''
     bds = xr.Dataset() # put the platform info into the dataset on the top
     bds['platform'] = xr.DataArray(glider_id[glider])
     ds = xr.Dataset.from_dataframe(df)
@@ -170,9 +160,7 @@ def convert_sci_df_to_ds(df:pd.DataFrame,glider_id:dict,glider:str) -> xr.Datase
     return ds
 
 def add_sci_attrs(ds:xr.Dataset,glider_id,glider,wmo_id) -> xr.Dataset:
-    '''
-    Add attributes to the science dataset
-    '''
+    '''Add attributes to the science dataset'''
     variables = list(ds.data_vars)
     # Define variable attributes
     ds['platform'].attrs = {'ancillary_variables': ' ',
@@ -316,9 +304,7 @@ def add_sci_attrs(ds:xr.Dataset,glider_id,glider,wmo_id) -> xr.Dataset:
     return ds
 
 def format_sci_ds(ds:xr.Dataset) -> xr.Dataset:
-    '''
-    Format the science dataset by sorting and renameing variables
-    '''
+    '''Format the science dataset by sorting and renameing variables'''
     ds['index'] = np.sort(ds['sci_m_present_time'].values.astype('datetime64[s]'))
     ds = ds.drop_vars('sci_m_present_time')
     if 'sci_oxy4_oxygen' in ds.data_vars.keys():
@@ -332,9 +318,7 @@ def format_sci_ds(ds:xr.Dataset) -> xr.Dataset:
     return ds
 
 def process_flight_df(df:pd.DataFrame) -> pd.DataFrame:
-    '''
-    Process flight dataframe by filtering and calculating latitude and longitude and renaming variables
-    '''
+    '''Process flight dataframe by filtering and calculating latitude and longitude and renaming variables'''
     # Exclude data before 2020 and after 2030
     df = df.reset_index()
     df = df[(df['m_present_time'] > '2010-01-01') & (df['m_present_time'] < '2030-01-01')]
@@ -354,13 +338,12 @@ def process_flight_df(df:pd.DataFrame) -> pd.DataFrame:
     return df
 
 def convert_fli_df_to_ds(df:pd.DataFrame) -> xr.Dataset:
+    '''Convert the flight dataframe to dataset'''
     ds = xr.Dataset.from_dataframe(df)
     return ds
 
 def add_flight_attrs(ds:xr.Dataset) -> xr.Dataset:
-    '''
-    Add attributes to the flight dataset
-    '''
+    '''Add attributes to the flight dataset'''
     ds['m_pressure'].attrs = {'accuracy': 0.01,
     'ancillary_variables': ' ',
     'axis': 'Z',
@@ -433,9 +416,7 @@ def add_flight_attrs(ds:xr.Dataset) -> xr.Dataset:
     return ds
 
 def format_flight_ds(ds:xr.Dataset) -> xr.Dataset:
-    '''
-    Format the flight dataset by sorting and renaming variables
-    '''
+    '''Format the flight dataset by sorting and renaming variables'''
     ds['index'] = np.sort(ds['m_present_time'].values.astype('datetime64[s]'))
     ds = ds.drop_vars('m_present_time')
     ds = ds.rename({'index': 'm_time','m_pressure':'m_pressure','m_water_depth':'depth','m_latitude':'latitude','m_longitude':'longitude'})
@@ -443,9 +424,7 @@ def format_flight_ds(ds:xr.Dataset) -> xr.Dataset:
     return ds
 
 def process_sci_data(science_data_dir,glider_id,glider,wmo_id) -> xr.Dataset:
-    '''
-    Perform all processing of science data from ascii to pandas dataframe to xarray dataset
-    '''
+    '''Perform all processing of science data from ascii to pandas dataframe to xarray dataset'''
     print_time('Processing Science Data')
     # Process Science Data
     sci_files = list(science_data_dir.rglob("*.asc"))
@@ -459,9 +438,7 @@ def process_sci_data(science_data_dir,glider_id,glider,wmo_id) -> xr.Dataset:
     return ds_sci
 
 def process_flight_data(flight_data_dir) -> xr.Dataset:
-    '''
-    Perform all processing of flight data from ascii to pandas dataframe to xarray dataset
-    '''
+    '''Perform all processing of flight data from ascii to pandas dataframe to xarray dataset'''
     print_time('Processing Flight Data')
     # Process Flight Data
     fli_files = list(flight_data_dir.rglob("*.asc"))
@@ -475,9 +452,7 @@ def process_flight_data(flight_data_dir) -> xr.Dataset:
     return ds_fli
 
 def add_gridded_data(ds_mission:xr.Dataset) -> xr.Dataset:
-    '''
-    Create gridder object and create the gridded dataset
-    '''
+    '''Create gridder object and create the gridded dataset'''
     print_time('Adding Gridded Data')
     gridder = Gridder(ds_mission=ds_mission)
     gridder.create_gridded_dataset()
@@ -486,7 +461,7 @@ def add_gridded_data(ds_mission:xr.Dataset) -> xr.Dataset:
     return ds_mission
 
 def get_polygon_coords(ds_mission:xr.Dataset) -> str:
-    # get the POLYGON coordinates
+    '''Get the polygon coords for the dataset global attributes'''
     lat_max = np.nanmax(ds_mission.latitude[np.where(ds_mission.latitude.values<29.5)].values)
     lat_min = np.nanmin(ds_mission.latitude[np.where(ds_mission.latitude.values<29.5)].values)
     lon_max = np.nanmax(ds_mission.longitude.values)
@@ -499,7 +474,7 @@ def get_polygon_coords(ds_mission:xr.Dataset) -> str:
     return 'POLYGON (('+polygon_1+' '+polygon_2+' '+polygon_3+' '+polygon_4+' '+polygon_5+'))'
 
 def add_global_attrs(ds_mission:xr.Dataset,mission_title:str,wmo_id:dict,glider:str) -> xr.Dataset:
-    ''''''
+    '''Add attributes to the mission dataset'''
     ds_mission.attrs = {'Conventions': 'CF-1.6, COARDS, ACDD-1.3',
     'acknowledgment': ' ',
     'cdm_data_type': 'Profile',
@@ -572,17 +547,13 @@ def add_global_attrs(ds_mission:xr.Dataset,mission_title:str,wmo_id:dict,glider:
     return ds_mission
 
 def save_ds(ds_mission:xr.Dataset,output_nc_path):
-    '''
-    Save xarray.Dataset to NetCDF
-    '''
+    '''Save xarray.Dataset to NetCDF'''
     print_time('Saving Dataset to NetCDF')
     ds_mission.to_netcdf(output_nc_path)
     print_time('Done Saving Dataset to NetCDF')
 
 def convert_ascii_to_dataset(working_directory:Path,glider:str,mission_title:str):
-    '''
-    Convert ascii data files into a single NetCDF file
-    '''
+    '''Convert ascii data files into a single NetCDF file'''
     print_time('Converting ascii to netcdf')
     working_directory = working_directory.joinpath('processed')
 
@@ -594,7 +565,6 @@ def convert_ascii_to_dataset(working_directory:Path,glider:str,mission_title:str
     glider_id = {'199':'Dora','307':'Reveille','308':'Howdy','540':'Stommel','541':'Sverdrup'}
     wmo_id = {'199':'unknown','307':'4801938','308':'4801915','540':'4801916','541':'4801924'}
     
-
     # Process Science Data
     ds_sci:xr.Dataset = process_sci_data(science_data_dir,glider_id,glider,wmo_id)
 

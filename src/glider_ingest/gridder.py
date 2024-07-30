@@ -10,8 +10,8 @@ import gsw
 @define
 class Gridder:
     '''
-    Object to create and calculate the gridded dataset
-    This object handles some functions that are coupled and to make the code easier to read
+    Class to create and calculate the gridded dataset.
+    This class handles some functions that are coupled to make the code easier to read and maintain
     '''
     ds_mission:xr.Dataset
     interval_h:int|float = field(default=1)
@@ -33,6 +33,9 @@ class Gridder:
     grid_time:np.ndarray = field(init=False)
 
     def __attrs_post_init__(self):
+        '''
+        Initalize the class and get the dimension values of the dataset
+        '''
         self.ds = self.ds_mission.copy()
         # Get indexes of where there are non-nan pressure values
         tloc_idx = np.where(~np.isnan(self.ds['pressure']))[0]
@@ -51,6 +54,9 @@ class Gridder:
         self.initalize_grid()
     
     def initalize_grid(self):
+        '''
+        Initalize the grid that is used to calcuate the gridded dataset
+        '''
         start_hour = int(pd.to_datetime(self.time[0]).hour / self.interval_h) * self.interval_h
         end_hour = int(pd.to_datetime(self.time[-1]).hour / self.interval_h) * self.interval_h
         start_time = pd.to_datetime(self.time[0]).replace(hour=start_hour, minute=0, second=0)
@@ -78,6 +84,9 @@ class Gridder:
             self.data_arrays[var].fill(np.nan)
 
     def add_attrs(self):
+        '''
+        Add dataset attributes to the gridded variables
+        '''
         self.ds_gridded['g_temp'].attrs = {'long_name': 'Gridded Temperature',
         'observation_type': 'calculated',
         'source': 'temperature from sci_water_temp',
@@ -192,6 +201,9 @@ class Gridder:
         'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
 
     def create_gridded_dataset(self):
+        '''
+        Calculate gridded data and create gridded dataset
+        '''
         for ttt in range(self.xx):
             tds:xr.Dataset = self.ds.sel(time=slice(str(self.int_time[ttt]),str(self.int_time[ttt+1]))).copy()
             if len(tds.time) > 0:

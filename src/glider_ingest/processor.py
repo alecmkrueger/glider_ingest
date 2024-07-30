@@ -16,9 +16,7 @@ from utils import process_sci_data,process_flight_data,add_gridded_data,add_glob
 
 @define
 class Processor:
-    '''
-    Class to process and contain information about the raw glider data ingest
-    '''
+    '''Class to process and contain information about the raw glider data ingest'''
     raw_data_source:Path
     working_directory:Path
     glider_number:str
@@ -177,9 +175,7 @@ class Processor:
         self.print_time_debug("Done renaming dbd files")
 
     def convert_binary_to_ascii(self):
-        '''
-        Converts binary files to ascii in the input directory and saves them to the output directory
-        '''
+        '''Converts binary files to ascii in the input directory and saves them to the output directory'''
         self.print_time_debug('Converting to ascii')
         output_data_dir = self.working_directory.joinpath('processed')
         working_directory = self.working_directory.joinpath('raw_copy')
@@ -208,9 +204,7 @@ class Processor:
         self.print_time_debug('Done Converting to ascii')
 
     def convert_ascii_to_dataset(self):
-        '''
-        Convert ascii data files into a single NetCDF file
-        '''
+        '''Convert ascii data files into a single NetCDF file'''
         self.print_time_debug('Converting ascii to dataset')
         processed_directory = self.working_directory.joinpath('processed')
 
@@ -241,11 +235,13 @@ class Processor:
         self.print_time_debug('Finished converting ascii to dataset')
 
     def save_ds(self):
+        '''Save the mission dataset to NetCDF'''
         self.print_time_debug(f'Saving dataset to {self.output_nc_path}')
         self.ds_mission.to_netcdf(self.output_nc_path)
         self.print_time_debug('Finished saving dataset')
 
     def process(self):
+        '''Perform the processing of the raw glider data into a NetCDF file'''
         self.create_directory()
         self.delete_files_in_directory()
         self.copy_raw_data()
