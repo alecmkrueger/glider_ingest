@@ -10,8 +10,8 @@ from attrs import define,field
 from concurrent.futures import ThreadPoolExecutor,as_completed
 import platform
 
-from utils import print_time,copy_file,rename_file,create_tasks,convert_file
-from utils import process_sci_data,process_flight_data,add_gridded_data,add_global_attrs,length_validator
+from .utils import print_time,copy_file,rename_file,create_tasks,convert_file
+from .utils import process_sci_data,process_flight_data,add_gridded_data,add_global_attrs,length_validator
 
 @define
 class Processor:
@@ -248,7 +248,3 @@ class Processor:
         self.convert_binary_to_ascii()
         self.convert_ascii_to_dataset()
         self.save_ds()
-
-    
-
-    
