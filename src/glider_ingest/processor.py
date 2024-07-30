@@ -28,12 +28,31 @@ class Processor:
 
     ds_mission:xr.Dataset = field(init=False)
     output_nc_path:Path = field(init=False)
+    package_dir:Path = field(init=False)
+    rename_exe_path:Path = field(init=False)
+    binary2asc_exe_path:Path = field(init=False)
+    cache_dir:Path = field(init=False)
 
 
     def __attrs_post_init__(self):
+        self.package_dir = Path(os.path.dirname(os.path.abspath(__file__)))
+
         self.output_nc_path = self.working_directory.joinpath('processed','nc',self.output_nc_filename)
         if self.max_workers is None:
             self.max_workers = multiprocessing.cpu_count()
+        self.pick_executables()
+
+    def pick_executables(self):
+        current_os = platform.system()
+        if current_os == 'Linux' or current_os == 'Darwin':
+            self.rename_exe_path = self.package_dir.joinpath('rename_files.exe')
+            self.binary2asc_exe_path = self.package_dir.joinpath('binary2asc.exe')
+        elif current_os == 'Windows':
+            self.rename_exe_path = self.package_dir.joinpath('windows_rename_files.exe')
+            self.binary2asc_exe_path = self.package_dir.joinpath('windows_binary2asc.exe')
+        else:
+            required_os_list = ['Windows','Linux','Darwin']
+            raise ValueError(f"Unknown Operating System, got {current_os}, must be one of {required_os_list}")
 
     def print_time_debug(self,message):
         # Print the message if self.debug is true
@@ -45,9 +64,10 @@ class Processor:
         Create the directory that will contain the raw and processed data inside the user defined working directory
         Sets up the structure that the rest of the module uses to put the data in the correct spots
         '''
+        self.print_time_debug('Creating Directory')
         # Create cache dir
-        cache_path = Path('cache')
-        cache_path.mkdir(exist_ok=True)
+        self.cache_dir = self.package_dir.joinpath('cache')
+        self.cache_dir.mkdir(exist_ok=True)
         # Define the two data type folders
         data_types = ['processed','raw_copy']
         # Define the three processed folders
@@ -67,6 +87,7 @@ class Processor:
                     for extension in extensions:
                         # Example directory being created: self.working_directory/raw_copy/Flight/DBD
                         os.makedirs(self.working_directory.joinpath(dtype ,data_source, extension), exist_ok=True)
+        self.print_time_debug('Finished Creating Directory')
 
     def delete_files_in_directory(self):
         '''
@@ -75,13 +96,14 @@ class Processor:
         then there will likely be data duplication and errors.
         So to be save, always clean up the directory using this function
         '''
+        self.print_time_debug('Deleting Files')
         # Check if the user wishes to delete all files in the directory
         confirmation = input(f"Are you sure you want to delete all files in '{self.working_directory}' and its subdirectories? Type 'yes' to confirm, 'no' to continue without deleting files, press escape to cancel and end ")
         # If so then begin finding files
         if confirmation.lower() == 'yes':
             # clear cache
-            cache_path = Path('cache').resolve()
-            [os.remove(file) for file in cache_path.rglob('*.cac')]
+            # cache_path = Path('cache').resolve()
+            [os.remove(file) for file in self.cache_dir.rglob('*.cac')]
             # clear all files in the given directory
             for root, _, files in os.walk(self.working_directory):
                 file_count = len(files)
@@ -95,7 +117,8 @@ class Processor:
             self.print_time_debug('Continuing without deleting files, this may cause unexpected behaviours including data duplication')
         else:
             raise ValueError("Cancelling: If you did not press escape, ensure you type 'yes' or 'no'. ")   
-         
+        self.print_time_debug('Finished Deleting Files')
+
     def copy_raw_data(self):
         '''
         Copy data from the memory card to the working directory using multithreading.
@@ -115,7 +138,7 @@ class Processor:
                     # If the extension is CAC then we want to copy the files to the cache folder
                     if file_extension == 'CAC':
                         # Add cache to internal cache folder
-                        output_data_path = Path('cache')
+                        output_data_path = self.cache_dir
                     else:
                         output_data_path = raw_output_data_dir.joinpath(data_source, file_extension)
                     # Find all of the files with the file extension 
@@ -136,42 +159,27 @@ class Processor:
                     self.print_time_debug(f"Error copying file: {e}")
         
         self.print_time_debug('Done Copying Raw files')
+
     def rename_binary_files(self):
-        '''
-        Rename files with extensions of DBD or EBD to contain date and glider name in the input data directory
-        using multithreading.
-        '''
-        self.print_time_debug('Renaming dbd files')
+        '''Rename files to contain date and glider name in the input data directory using multithreading.'''
+        self.print_time_debug('Renaming files')
         
         raw_copy_directory = self.working_directory.joinpath('raw_copy')
-        current_os = platform.system()
-        if current_os == 'Linux' or current_os == 'Darwin':
-            rename_path = Path('rename_files.exe').resolve()
-        elif current_os == 'Windows':
-            rename_path = Path('windows_rename_files.exe').resolve()
-        else:
-            required_os_list = ['Windows','Linux','Darwin']
-            raise ValueError(f"Unknown Operating System, got {current_os}, must be one of {required_os_list}")
-        rename_files_path = rename_path
 
-        tasks = []
         for extension in self.extensions:
-            if extension is None:
-                continue
-            data_files = raw_copy_directory.rglob(f'*.{extension}')
-            for file in data_files:
-                tasks.append(file)
+            data_files = list(raw_copy_directory.rglob(f'*.{extension}'))
+            print(f'{data_files = }')
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            futures = [executor.submit(rename_file, rename_files_path, file) for file in tasks]
+            futures = [executor.submit(rename_file, self.rename_exe_path, file) for file in data_files]
             
             for future in as_completed(futures):
-                try:
-                    future.result()  # Raise any exceptions that occurred
-                except Exception as e:
-                    self.print_time_debug(f"Error renaming file: {e}")
+                # try:
+                future.result()  # Raise any exceptions that occurred
+                # except Exception as e:
+                #     self.print_time_debug(f"Error renaming file: {e}")
 
-        self.print_time_debug("Done renaming dbd files")
+        self.print_time_debug("Done renaming files")
 
     def convert_binary_to_ascii(self):
         '''Converts binary files to ascii in the input directory and saves them to the output directory'''
@@ -179,20 +187,10 @@ class Processor:
         output_data_dir = self.working_directory.joinpath('processed')
         working_directory = self.working_directory.joinpath('raw_copy')
         
-        # Define the Path object for where the binary2asc executable is
-        current_os = platform.system()
-        if current_os == 'Linux' or current_os == 'Darwin':
-            binary2asc_path = Path('binary2asc.exe').resolve()
-        elif current_os == 'Windows':
-            binary2asc_path = Path('windows_binary2asc.exe').resolve()
-        else:
-            required_os_list = ['Windows','Linux','Darwin']
-            raise ValueError(f"Unknown Operating System, got {current_os}, must be one of {required_os_list}")
-        
         # Collect all files to be processed
         tasks = []
         for data_source, extension in zip(self.data_sources, self.extensions):
-            tasks = create_tasks(working_directory,data_source,extension,output_data_dir,tasks,binary2asc_path)
+            tasks = create_tasks(working_directory,data_source,extension,output_data_dir,tasks,self.binary2asc_exe_path)
         
         # Process files in parallel using ThreadPoolExecutor
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
