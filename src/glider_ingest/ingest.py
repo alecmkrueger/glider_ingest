@@ -49,9 +49,7 @@ def process(raw_data_source:Path|str,working_directory:Path|str,glider_number:st
     if return_ds:
         return processor.ds_mission
 
-# Example:
-ds = process('540','Mission_44',extensions=['DBD','EBD'],raw_data_source=Path('../../test_data').resolve(),
-             working_directory=Path('../../data').resolve(),output_nc_filename='test.nc',return_ds=True)
+
 
 
 
