@@ -128,6 +128,20 @@ Function inputs:
 * output_nc_filename (str): The name of the output NetCDF file
 * return_ds (bool): If you would like the output dataset to be returned. Default = False
 
+Example:
+
+```sh
+from glider_ingest.ingest import process
+
+ds = process(glider_number = 'Glider_Number',
+             mission_title = 'Mission_Title',
+             extensions = ['DBD','EBD'],
+             raw_data_source = 'path/to/raw_data',
+             working_directory = 'path/to/working_directory',
+             output_nc_filename = 'Mission_Title_Glider_Number.nc',
+             return_ds = True)
+```
+
 
 
 
