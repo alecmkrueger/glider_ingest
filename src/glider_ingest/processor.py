@@ -16,12 +16,16 @@ from utils import process_sci_data,process_flight_data,add_gridded_data,add_glob
 
 @define
 class Processor:
+    '''
+    Class to process and contain information about the raw glider data ingest
+    '''
     raw_data_source:Path
     working_directory:Path
     glider_number:str
     mission_title:str
     output_nc_filename:str
     extensions:list = field(default=['DBD','EBD'],validator=length_validator)
+    data_sources:list = field(default=['Flight', 'Science'],validator=length_validator)
     max_workers:int|None = field(default=None)
     debug:bool = field(default=False)
 
@@ -35,10 +39,15 @@ class Processor:
             self.max_workers = multiprocessing.cpu_count()
 
     def print_time_debug(self,message):
+        # Print the message if self.debug is true
         if self.debug:
             print_time(message)
 
     def create_directory(self):
+        '''
+        Create the directory that will contain the raw and processed data inside the user defined working directory
+        Sets up the structure that the rest of the module uses to put the data in the correct spots
+        '''
         # Create cache dir
         cache_path = Path('cache')
         cache_path.mkdir(exist_ok=True)
@@ -63,6 +72,12 @@ class Processor:
                         os.makedirs(self.working_directory.joinpath(dtype ,data_source, extension), exist_ok=True)
 
     def delete_files_in_directory(self):
+        '''
+        Clean up the directory incase there are files that already exist.
+        If you do not delete the files in the directory before running the rest of the script,
+        then there will likely be data duplication and errors.
+        So to be save, always clean up the directory using this function
+        '''
         # Check if the user wishes to delete all files in the directory
         confirmation = input(f"Are you sure you want to delete all files in '{self.working_directory}' and its subdirectories? Type 'yes' to confirm, 'no' to continue without deleting files, press escape to cancel and end ")
         # If so then begin finding files
@@ -82,18 +97,22 @@ class Processor:
         elif confirmation.lower() == 'no':
             self.print_time_debug('Continuing without deleting files, this may cause unexpected behaviours including data duplication')
         else:
-            raise ValueError("Cancelling: If you did not press escape, ensure you type 'yes' or 'no'. ")    
+            raise ValueError("Cancelling: If you did not press escape, ensure you type 'yes' or 'no'. ")   
+         
     def copy_raw_data(self):
         '''
         Copy data from the memory card to the working directory using multithreading.
+        We only work on the copied data and never the source data to keep the data safe
         '''
         self.print_time_debug('Copying Raw files')
         
         raw_output_data_dir = self.working_directory.joinpath('raw_copy')
+
+        all_extensions = [["DBD", "MBD", "SBD", "MLG", "CAC"], ["EBD", "NLG", "TBD", "NBD", "CAC"]]
         
         tasks = []
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            for data_source, extensions in zip(['Flight', 'Science'], [["DBD", "MBD", "SBD", "MLG", "CAC"], ["EBD", "NLG", "TBD", "NBD", "CAC"]]):
+            for data_source, extensions in zip(self.data_sources, all_extensions):
                 input_data_path = self.raw_data_source.joinpath(f'{data_source}_card')
                 for file_extension in extensions:
                     # If the extension is CAC then we want to copy the files to the cache folder
@@ -124,17 +143,10 @@ class Processor:
         '''
         Rename files with extensions of DBD or EBD to contain date and glider name in the input data directory
         using multithreading.
-
-        working_directory (pathlib.Path): Object that points to the folder that contains the files to be renamed
-        max_workers (int): Maximum number of threads to use for parallel processing. Defaults to number of CPU cores.
         '''
         self.print_time_debug('Renaming dbd files')
-
-        # if self.max_workers is None:
-        #     self.max_workers = multiprocessing.cpu_count()
         
-        working_directory = self.working_directory.joinpath('raw_copy')
-        # extensions = ['DBD', 'EBD']
+        raw_copy_directory = self.working_directory.joinpath('raw_copy')
         current_os = platform.system()
         if current_os == 'Linux' or current_os == 'Darwin':
             rename_path = Path('rename_files.exe').resolve()
@@ -149,7 +161,7 @@ class Processor:
         for extension in self.extensions:
             if extension is None:
                 continue
-            data_files = self.working_directory.rglob(f'*.{extension}')
+            data_files = raw_copy_directory.rglob(f'*.{extension}')
             for file in data_files:
                 tasks.append(file)
 
@@ -181,13 +193,10 @@ class Processor:
         else:
             required_os_list = ['Windows','Linux','Darwin']
             raise ValueError(f"Unknown Operating System, got {current_os}, must be one of {required_os_list}")
-
-        # Define the data_sources
-        data_sources = ['Flight', 'Science']
         
         # Collect all files to be processed
         tasks = []
-        for data_source, extension in zip(data_sources, self.extensions):
+        for data_source, extension in zip(self.data_sources, self.extensions):
             tasks = create_tasks(working_directory,data_source,extension,output_data_dir,tasks,binary2asc_path)
         
         # Process files in parallel using ThreadPoolExecutor
@@ -202,18 +211,15 @@ class Processor:
         '''
         Convert ascii data files into a single NetCDF file
         '''
-        self.print_time_debug('Converting ascii to netcdf')
+        self.print_time_debug('Converting ascii to dataset')
         processed_directory = self.working_directory.joinpath('processed')
 
         science_data_dir:Path = processed_directory.joinpath('Science')
         flight_data_dir:Path = processed_directory.joinpath('Flight')
 
-        # output_nc_path = working_directory.joinpath('processed','nc',nc_filename)
-
         glider_id = {'199':'Dora','307':'Reveille','308':'Howdy','540':'Stommel','541':'Sverdrup'}
         wmo_id = {'199':'unknown','307':'4801938','308':'4801915','540':'4801916','541':'4801924'}
         
-
         # Process Science Data
         ds_sci:xr.Dataset = process_sci_data(science_data_dir,glider_id,self.glider_number,wmo_id)
 
@@ -232,11 +238,12 @@ class Processor:
         # Add attributes to the mission dataset
         self.ds_mission = add_global_attrs(ds_mission,mission_title=self.mission_title,wmo_id=wmo_id,glider=self.glider_number)
 
-        # self.print_time_debug('Finished converting ascii to dataset')
-        # return ds_mission
+        self.print_time_debug('Finished converting ascii to dataset')
 
     def save_ds(self):
-        self.ds_mission.to_netcdf(self.output_nc_path)	
+        self.print_time_debug(f'Saving dataset to {self.output_nc_path}')
+        self.ds_mission.to_netcdf(self.output_nc_path)
+        self.print_time_debug('Finished saving dataset')
 
     def process(self):
         self.create_directory()

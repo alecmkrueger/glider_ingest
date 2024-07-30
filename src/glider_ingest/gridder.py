@@ -50,7 +50,6 @@ class Gridder:
 
         self.initalize_grid()
     
-
     def initalize_grid(self):
         start_hour = int(pd.to_datetime(self.time[0]).hour / self.interval_h) * self.interval_h
         end_hour = int(pd.to_datetime(self.time[-1]).hour / self.interval_h) * self.interval_h

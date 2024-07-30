@@ -12,7 +12,7 @@ from processor import Processor
 # from utils import delete_files_in_directory,create_directory,copy_raw_data,rename_binary_files
 # from utils import convert_binary_to_ascii,convert_ascii_to_dataset,save_ds
 
-def process(glider_number:str,mission_title:str,extensions:list,raw_data_source:Path,working_directory:Path,output_nc_filename:str,return_ds:bool=False) -> None|xr.Dataset:
+def process(raw_data_source:Path,working_directory:Path,glider_number:str,mission_title:str,extensions:list,output_nc_filename:str,return_ds:bool=False) -> None|xr.Dataset:
     '''
     Example Parameter inputs:
 
@@ -27,7 +27,7 @@ def process(glider_number:str,mission_title:str,extensions:list,raw_data_source:
     extensions = ["SBD", "TBD"]
 
     Raw data source, from the glider SD card
-    raw_data_source = Path('../../test_data').resolve()
+    raw_data_source = Path('test_data').resolve()
     Where you want the raw copy and processed data to be
     working_directory = Path('data').resolve()
 
