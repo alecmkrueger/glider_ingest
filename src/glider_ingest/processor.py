@@ -10,7 +10,7 @@ from attrs import define,field
 from concurrent.futures import ThreadPoolExecutor,as_completed
 import platform
 
-from .utils import print_time,copy_file,rename_file,create_tasks,convert_file
+from .utils import print_time,copy_file,rename_file,create_tasks,convert_file,clean_dir
 from .utils import process_sci_data,process_flight_data,add_gridded_data,add_global_attrs,length_validator
 
 @define
@@ -125,39 +125,44 @@ class Processor:
         We only work on the copied data and never the source data to keep the data safe
         '''
         self.print_time_debug('Copying Raw files')
-        
-        raw_output_data_dir = self.working_directory.joinpath('raw_copy')
+        confirmation = input(f"Do you want to copy files from '{self.raw_data_source}' to '{self.working_directory}'? Type 'yes' to confirm, 'no' to continue without deleting files, press escape to cancel and end ")
+        # If so then begin finding files
+        if confirmation.lower() == 'yes':
+            raw_output_data_dir = self.working_directory.joinpath('raw_copy')
 
-        all_extensions = [["DBD", "MBD", "SBD", "MLG", "CAC"], ["EBD", "NLG", "TBD", "NBD", "CAC"]]
-        
-        tasks = []
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            for data_source, extensions in zip(self.data_sources, all_extensions):
-                input_data_path = self.raw_data_source.joinpath(f'{data_source}_card')
-                for file_extension in extensions:
-                    # If the extension is CAC then we want to copy the files to the cache folder
-                    if file_extension == 'CAC':
-                        # Add cache to internal cache folder
-                        output_data_path = self.cache_dir
-                    else:
-                        output_data_path = raw_output_data_dir.joinpath(data_source, file_extension)
-                    # Find all of the files with the file extension 
-                    input_files = input_data_path.rglob(f'*.{file_extension}')
-                    # Loop through the files with matching extensions
-                    for input_file_path in input_files:
-                        # Define where the file will be placed
-                        output_file_path = output_data_path.joinpath(input_file_path.name)
-                        # Append the input and output file paths to a list
-                        tasks.append((input_file_path, output_file_path))
-            # Queue the copy_file function using multiprocessing on the input and output file paths
-            futures = [executor.submit(copy_file, input_file_path, output_file_path) for input_file_path, output_file_path in tasks]
-            # Perform the multiprocessing
-            for future in as_completed(futures):
-                try:
-                    future.result()  # Raise any exceptions that occurred
-                except Exception as e:
-                    self.print_time_debug(f"Error copying file: {e}")
-        
+            all_extensions = [["DBD", "MBD", "SBD", "MLG", "CAC"], ["EBD", "NLG", "TBD", "NBD", "CAC"]]
+            
+            tasks = []
+            with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+                for data_source, extensions in zip(self.data_sources, all_extensions):
+                    input_data_path = self.raw_data_source.joinpath(f'{data_source}_card')
+                    for file_extension in extensions:
+                        # If the extension is CAC then we want to copy the files to the cache folder
+                        if file_extension == 'CAC':
+                            # Add cache to internal cache folder
+                            output_data_path = self.cache_dir
+                        else:
+                            output_data_path = raw_output_data_dir.joinpath(data_source, file_extension)
+                        # Find all of the files with the file extension 
+                        input_files = input_data_path.rglob(f'*.{file_extension}')
+                        # Loop through the files with matching extensions
+                        for input_file_path in input_files:
+                            # Define where the file will be placed
+                            output_file_path = output_data_path.joinpath(input_file_path.name)
+                            # Append the input and output file paths to a list
+                            tasks.append((input_file_path, output_file_path))
+                # Queue the copy_file function using multiprocessing on the input and output file paths
+                futures = [executor.submit(copy_file, input_file_path, output_file_path) for input_file_path, output_file_path in tasks]
+                # Perform the multiprocessing
+                for future in as_completed(futures):
+                    try:
+                        future.result()  # Raise any exceptions that occurred
+                    except Exception as e:
+                        self.print_time_debug(f"Error copying file: {e}")
+        elif confirmation.lower() == 'no':
+            self.print_time_debug('Continuing without deleting files, this may cause unexpected behaviours including data duplication')
+        else:
+            raise ValueError("Cancelling: If you did not press escape, ensure you type 'yes' or 'no'.") 
         self.print_time_debug('Done Copying Raw files')
 
     def rename_binary_files(self):
@@ -238,7 +243,16 @@ class Processor:
         self.ds_mission.to_netcdf(self.output_nc_path)
         self.print_time_debug('Finished saving dataset')
 
-    def process(self):
+    def remove_temp_files(self):
+        raw_files_directory = self.working_directory.joinpath('raw')
+        flight_directory = self.working_directory.joinpath('processed','Flight')
+        science_directory = self.working_directory.joinpath('processed','Science')
+        clean_dir(raw_files_directory)
+        clean_dir(flight_directory)
+        clean_dir(science_directory)
+
+
+    def process(self,remove_temp_files:bool=False):
         '''Perform the processing of the raw glider data into a NetCDF file'''
         self.create_directory()
         self.delete_files_in_directory()
@@ -247,3 +261,5 @@ class Processor:
         self.convert_binary_to_ascii()
         self.convert_ascii_to_dataset()
         self.save_ds()
+        if remove_temp_files:
+            self.remove_temp_files()
