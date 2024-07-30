@@ -166,18 +166,20 @@ class Processor:
         
         raw_copy_directory = self.working_directory.joinpath('raw_copy')
 
+        tasks = []
         for extension in self.extensions:
+            print(extension)
             data_files = list(raw_copy_directory.rglob(f'*.{extension}'))
-            print(f'{data_files = }')
+            tasks.extend(data_files)
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            futures = [executor.submit(rename_file, self.rename_exe_path, file) for file in data_files]
+            futures = [executor.submit(rename_file, self.rename_exe_path, file) for file in tasks]
             
             for future in as_completed(futures):
-                # try:
-                future.result()  # Raise any exceptions that occurred
-                # except Exception as e:
-                #     self.print_time_debug(f"Error renaming file: {e}")
+                try:
+                    future.result()  # Raise any exceptions that occurred
+                except Exception as e:
+                    self.print_time_debug(f"Error renaming file: {e}")
 
         self.print_time_debug("Done renaming files")
 
@@ -239,9 +241,9 @@ class Processor:
 
     def process(self):
         '''Perform the processing of the raw glider data into a NetCDF file'''
-        self.create_directory()
-        self.delete_files_in_directory()
-        self.copy_raw_data()
+        # self.create_directory()
+        # self.delete_files_in_directory()
+        # self.copy_raw_data()
         self.rename_binary_files()
         self.convert_binary_to_ascii()
         self.convert_ascii_to_dataset()
