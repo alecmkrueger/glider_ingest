@@ -10,7 +10,7 @@
 <h3 align="center">GERG Glider Ingest</h3>
 
   <p align="center">
-    Convert raw data from GERG gliders into netcdf using python on windows
+    Convert raw data from GERG gliders into netcdf using python
     <br />
     <a href="https://github.com/alecmkrueger/glider_ingest"><strong>Explore the docs »</strong></a>
     <br />
@@ -74,7 +74,7 @@ There are three ways to get started
 
 
 
-### Dependencies
+<!-- ### Dependencies
 I have provided some commands for the dependencies
 
 * #### Using the .yml file (preferred)
@@ -114,7 +114,7 @@ I have provided some commands for the dependencies
 1. Clone the repo
    ```sh
    git clone https://github.com/alecmkrueger/glider_ingest.git
-   ```
+   ``` -->
 
 
 
@@ -193,6 +193,5 @@ Project Link: [https://github.com/alecmkrueger/glider_ingest](https://github.com
 [license-url]: https://github.com/alecmkrueger/glider_ingest/LICENSE
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://linkedin.com/in/aleckrueger
-[product-screenshot]: images/screenshot.png
 [Python]: https://img.shields.io/badge/python-000000?&logo=python
 [Python-url]: https://www.python.org/
