@@ -41,6 +41,12 @@ def copy_file(input_file_path, output_file_path):
     '''Use shutil to copy and the input file to the output location'''
     shutil.copy2(input_file_path, output_file_path)
 
+def clean_dir(dir:Path):
+    files = dir.rglob('*')
+    [os.remove(file) for file in files]
+    print(f'Removed all files in {dir}')
+    
+
 def rename_file(rename_files_path, file):
     '''Use subprocess to run the executable file with the rename_files_path input'''
     subprocess.run([rename_files_path, file])
