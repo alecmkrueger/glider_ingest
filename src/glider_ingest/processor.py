@@ -168,7 +168,6 @@ class Processor:
 
         tasks = []
         for extension in self.extensions:
-            print(extension)
             data_files = list(raw_copy_directory.rglob(f'*.{extension}'))
             tasks.extend(data_files)
 
@@ -241,9 +240,9 @@ class Processor:
 
     def process(self):
         '''Perform the processing of the raw glider data into a NetCDF file'''
-        # self.create_directory()
-        # self.delete_files_in_directory()
-        # self.copy_raw_data()
+        self.create_directory()
+        self.delete_files_in_directory()
+        self.copy_raw_data()
         self.rename_binary_files()
         self.convert_binary_to_ascii()
         self.convert_ascii_to_dataset()
