@@ -6,7 +6,6 @@ import xarray as xr
 from pathlib import Path
 import os
 import multiprocessing
-from attrs import define,field
 from concurrent.futures import ThreadPoolExecutor,as_completed
 import platform
 
@@ -36,7 +35,7 @@ class Processor:
 
     def __attrs_post_init__(self):
         self.package_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-
+        self.working_directory = self.working_directory.joinpath(self.mission_title)
         self.output_nc_path = self.working_directory.joinpath('processed','nc',self.output_nc_filename)
         if self.max_workers is None:
             self.max_workers = multiprocessing.cpu_count()
@@ -64,7 +63,7 @@ class Processor:
         Create the directory that will contain the raw and processed data inside the user defined working directory
         Sets up the structure that the rest of the module uses to put the data in the correct spots
         '''
-        self.print_time_debug('Creating Directory')
+        self.print_time_debug(f'Creating Directory at {self.working_directory}')
         # Create cache dir
         self.cache_dir = self.package_dir.joinpath('cache')
         self.cache_dir.mkdir(exist_ok=True)
@@ -80,13 +79,15 @@ class Processor:
             if dtype == 'processed':
                 for processed_dtype in processed_data_types:
                     # Example directory being created: self.working_directory/processed/Flight
-                    os.makedirs(self.working_directory.joinpath(dtype, processed_dtype), exist_ok=True)
+                    # os.makedirs(self.working_directory.joinpath(dtype, processed_dtype), exist_ok=True)
+                    self.working_directory.joinpath(dtype, processed_dtype).mkdir(exist_ok=True,parents=True)
             elif dtype == 'raw_copy':
                 # Package Flight and Science with their respective data type folders (extensions)
                 for data_source,extensions in zip(['Flight','Science'],[raw_flight_extensions,raw_science_extensions]):
                     for extension in extensions:
                         # Example directory being created: self.working_directory/raw_copy/Flight/DBD
-                        os.makedirs(self.working_directory.joinpath(dtype ,data_source, extension), exist_ok=True)
+                        # os.makedirs(self.working_directory.joinpath(dtype ,data_source, extension), exist_ok=True)
+                        self.working_directory.joinpath(dtype ,data_source, extension).mkdir(exist_ok=True,parents=True)
         self.print_time_debug('Finished Creating Directory')
 
     def delete_files_in_directory(self):
