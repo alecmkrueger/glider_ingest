@@ -27,7 +27,7 @@ def process(raw_data_source:Path|str,working_directory:Path|str,glider_number:st
     * extensions = ["DBD", "EBD"] or ["SBD", "TBD"]
     * raw_data_source = Path('test_data').resolve()
     * working_directory = Path('data').resolve()
-    * output_nc_filename = 2024_mission_44.nc
+    * output_nc_filename = '2024_mission_44.nc'
     * return_ds = True
     '''
     if isinstance(raw_data_source,str):
