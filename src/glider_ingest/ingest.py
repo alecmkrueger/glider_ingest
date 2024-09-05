@@ -8,7 +8,7 @@ Module containing the function to run the glider ingest process
 
 import xarray as xr
 from pathlib import Path
-from processor import Processor
+from .processor import Processor
 
 def process(raw_data_source:Path|str,working_directory:Path|str,glider_number:str,mission_title:str,extensions:list,output_nc_filename:str,return_ds:bool=False,remove_temp_files:bool=False,debug:bool=False) -> None|xr.Dataset:
     '''

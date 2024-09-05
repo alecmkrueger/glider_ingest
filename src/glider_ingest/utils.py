@@ -14,7 +14,7 @@ import gsw
 import multiprocessing
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from gridder import Gridder
+from .gridder import Gridder
 
 # AUTHORS:
 # Sakib Mahmud, Texas A&M University, Geochemical and Environmental Research Group, sakib@tamu.edu
