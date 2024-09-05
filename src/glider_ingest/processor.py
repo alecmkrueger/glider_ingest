@@ -9,15 +9,15 @@ import multiprocessing
 from concurrent.futures import ThreadPoolExecutor,as_completed
 import platform
 
-from .utils import print_time,copy_file,rename_file,create_tasks,convert_file,clean_dir
-from .utils import process_sci_data,process_flight_data,add_gridded_data,add_global_attrs,length_validator
+from utils import print_time,copy_file,rename_file,create_tasks,convert_file,clean_dir
+from utils import process_sci_data,process_flight_data,add_gridded_data,add_global_attrs,length_validator
 
 @define
 class Processor:
     '''Class to process and contain information about the raw glider data ingest'''
     raw_data_source:Path
     working_directory:Path
-    glider_number:str
+    glider_number:str = field(converter=str)
     mission_title:str
     output_nc_filename:str
     extensions:list = field(default=['DBD','EBD'],validator=length_validator)
@@ -190,6 +190,9 @@ class Processor:
 
     def convert_binary_to_ascii(self):
         '''Converts binary files to ascii in the input directory and saves them to the output directory'''
+        
+        working_dir = os.getcwd()
+        os.chdir(str(self.package_dir))
         self.print_time_debug('Converting to ascii')
         output_data_dir = self.working_directory.joinpath('processed')
         working_directory = self.working_directory.joinpath('raw_copy')
@@ -205,6 +208,7 @@ class Processor:
             for future in as_completed(futures):
                 future.result()  # Raise any exceptions that occurred
         
+        os.chdir(working_dir)
         self.print_time_debug('Done Converting to ascii')
 
     def convert_ascii_to_dataset(self):
@@ -241,7 +245,7 @@ class Processor:
     def save_ds(self):
         '''Save the mission dataset to NetCDF'''
         self.print_time_debug(f'Saving dataset to {self.output_nc_path}')
-        self.ds_mission.to_netcdf(self.output_nc_path)
+        self.ds_mission.to_netcdf(self.output_nc_path,engine='netcdf4')
         self.print_time_debug('Finished saving dataset')
 
     def remove_temp_files(self):
