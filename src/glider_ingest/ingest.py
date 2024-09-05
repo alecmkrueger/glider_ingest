@@ -8,9 +8,9 @@ Module containing the function to run the glider ingest process
 
 import xarray as xr
 from pathlib import Path
-from .processor import Processor
+from processor import Processor
 
-def process(raw_data_source:Path|str,working_directory:Path|str,glider_number:str,mission_title:str,extensions:list,output_nc_filename:str,return_ds:bool=False,remove_temp_files:bool=False) -> None|xr.Dataset:
+def process(raw_data_source:Path|str,working_directory:Path|str,glider_number:str,mission_title:str,extensions:list,output_nc_filename:str,return_ds:bool=False,remove_temp_files:bool=False,debug:bool=False) -> None|xr.Dataset:
     '''
     Function inputs:
     * raw_data_source (Path|str): Raw data source, from the glider SD card
@@ -42,8 +42,8 @@ def process(raw_data_source:Path|str,working_directory:Path|str,glider_number:st
         raise ValueError(f'Working directory does not exist: {working_directory}')
     
     processor = Processor(raw_data_source=raw_data_source,working_directory=working_directory,glider_number=glider_number,
-                          mission_title=mission_title,output_nc_filename=output_nc_filename,extensions=extensions,remove_temp_files=remove_temp_files,debug=True)
-    processor.process()
+                          mission_title=mission_title,output_nc_filename=output_nc_filename,extensions=extensions,debug=debug)
+    processor.process(remove_temp_files=remove_temp_files)
 
     if return_ds:
         return processor.ds_mission
