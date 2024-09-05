@@ -14,7 +14,7 @@ import gsw
 import multiprocessing
 import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from .gridder import Gridder
+from gridder import Gridder
 
 # AUTHORS:
 # Sakib Mahmud, Texas A&M University, Geochemical and Environmental Research Group, sakib@tamu.edu
@@ -51,7 +51,7 @@ def rename_file(rename_files_path, file):
     '''Use subprocess to run the executable file with the rename_files_path input'''
     subprocess.run([rename_files_path, file])
 
-def convert_file(binary2asc_path, raw_file, ascii_file):
+def convert_file(binary2asc_path:Path, raw_file, ascii_file):
     '''Use os.system to run the binary2asc executable on the raw file and output the ascii_file'''
     cmd = f'{binary2asc_path} "{raw_file}" > "{ascii_file}"'
     os.system(cmd)
@@ -140,6 +140,8 @@ def join_ascii_files(files, file_reader, max_workers=None) -> pd.DataFrame:
             except Exception as e:
                 print(f"Error reading {file}: {e}")
     df_list = [df for df in df_list if df is not None]
+    df_list = [df for df in df_list if not df.empty]
+    df_list = [df for df in df_list if len(df) > 0]
     df_concat = pd.concat(df_list, axis=0)
     return df_concat
 
@@ -311,7 +313,7 @@ def add_sci_attrs(ds:xr.Dataset,glider_id,glider,wmo_id) -> xr.Dataset:
 
 def format_sci_ds(ds:xr.Dataset) -> xr.Dataset:
     '''Format the science dataset by sorting and renameing variables'''
-    ds['index'] = np.sort(ds['sci_m_present_time'].values.astype('datetime64[s]'))
+    ds['index'] = np.sort(ds['sci_m_present_time'].values.astype('datetime64[ns]'))
     ds = ds.drop_vars('sci_m_present_time')
     if 'sci_oxy4_oxygen' in ds.data_vars.keys():
         ds = ds.rename({'index': 'time','sci_water_pressure':'pressure','sci_water_temp':'temperature',
@@ -423,7 +425,7 @@ def add_flight_attrs(ds:xr.Dataset) -> xr.Dataset:
 
 def format_flight_ds(ds:xr.Dataset) -> xr.Dataset:
     '''Format the flight dataset by sorting and renaming variables'''
-    ds['index'] = np.sort(ds['m_present_time'].values.astype('datetime64[s]'))
+    ds['index'] = np.sort(ds['m_present_time'].values.astype('datetime64[ns]'))
     ds = ds.drop_vars('m_present_time')
     ds = ds.rename({'index': 'm_time','m_pressure':'m_pressure','m_water_depth':'depth','m_latitude':'latitude','m_longitude':'longitude'})
 
