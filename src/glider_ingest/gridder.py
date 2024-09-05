@@ -62,7 +62,7 @@ class Gridder:
         start_time = pd.to_datetime(self.time[0]).replace(hour=start_hour, minute=0, second=0)
         end_time = pd.to_datetime(self.time[-1]).replace(hour=end_hour, minute=0, second=0)
 
-        self.int_time = np.arange(start_time, end_time+np.timedelta64(self.interval_h, 'h'), np.timedelta64(self.interval_h, 'h')).astype('datetime64[s]')
+        self.int_time = np.arange(start_time, end_time+np.timedelta64(self.interval_h, 'h'), np.timedelta64(self.interval_h, 'h')).astype('datetime64[ns]')
 
         # create the pressure grids for intepolation
         start_pres = 0
@@ -208,7 +208,7 @@ class Gridder:
             tds:xr.Dataset = self.ds.sel(time=slice(str(self.int_time[ttt]),str(self.int_time[ttt+1]))).copy()
             if len(tds.time) > 0:
                 tds = tds.sortby('pressure')
-                tds = tds.assign_coords(time=('time',tds.time.values.astype('datetime64[s]')))
+                tds = tds.assign_coords(time=('time',tds.time.values.astype('datetime64[ns]')))
                 tds['time'] = tds['pressure'].values
                 
                 # Remove duplicates and slightly modify if necessary by adding a tiny value
