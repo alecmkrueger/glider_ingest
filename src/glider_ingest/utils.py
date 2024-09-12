@@ -71,7 +71,7 @@ def read_sci_file(file:Path) -> pd.DataFrame:
     try:
         if os.path.getsize(file) > 0:
             # Read in the data
-            df_raw = pd.read_csv(file, header=14, sep=' ', skiprows=[15,16])
+            df_raw = pd.read_csv(file, header=14, sep=' ', skiprows=[15,16],parse_dates=['sci_m_present_time'])
 
             variables = df_raw.keys()
             # Define subsets of columns based on the presence of sci_oxy4_oxygen and sci_flbbcd_bb_units
@@ -90,8 +90,8 @@ def read_sci_file(file:Path) -> pd.DataFrame:
             df_filtered = df_raw[present_variables]
             # Parse the timestamp explicitly
             dates = df_filtered['sci_m_present_time'].copy()
-            dates_datetime =  pd.to_datetime(dates, unit='s', errors='coerce')
-            df_filtered = df_filtered.assign(sci_m_present_time=dates_datetime)
+            # dates_datetime =  pd.to_datetime(dates, unit='s', errors='coerce')
+            # df_filtered = df_filtered.assign(sci_m_present_time=dates_datetime)
             df_filtered = df_filtered.set_index('sci_m_present_time')
         else:
             # Set the dataframe to 
@@ -107,13 +107,13 @@ def read_flight_file(file:Path) -> pd.DataFrame:
     try:
         # Check if there are enough lines of data to read
         if os.path.getsize(file) > 0:
-            df_raw = pd.read_csv(file, header=14, sep=' ', skiprows=[15,16])
+            df_raw = pd.read_csv(file, header=14, sep=' ', skiprows=[15,16],parse_dates=['m_present_time'])
             present_variables = ['m_present_time','m_lat','m_lon','m_pressure','m_water_depth']
             df_filtered = df_raw[present_variables]
             # Parse the timestamp explicitly
             dates = df_filtered['m_present_time'].copy()
-            dates_datetime =  pd.to_datetime(dates, unit='s', errors='coerce')
-            df_filtered = df_filtered.assign(m_present_time=dates_datetime)
+            # dates_datetime =  pd.to_datetime(dates, unit='s', errors='coerce')
+            # df_filtered = df_filtered.assign(m_present_time=dates_datetime)
             df_filtered = df_filtered.set_index(['m_present_time'])
         else:
             df_filtered = None
