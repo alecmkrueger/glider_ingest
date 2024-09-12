@@ -151,7 +151,6 @@ def process_sci_df(df:pd.DataFrame) -> pd.DataFrame:
     upper_date_limit = str(datetime.datetime.today().date()+datetime.timedelta(days=365))
     start_date = '2010-01-01'
     df = df.reset_index()
-    # df = df[(df['sci_m_present_time'] > '2010-01-01') & (df['sci_m_present_time'] < upper_date_limit)]
     df = df.loc[(df['sci_m_present_time'] > start_date) & (df['sci_m_present_time'] < upper_date_limit)]
 
     # Convert pressure from db to dbar
@@ -160,6 +159,9 @@ def process_sci_df(df:pd.DataFrame) -> pd.DataFrame:
     df['sci_water_sal'] = gsw.SP_from_C(df['sci_water_cond']*10,df['sci_water_temp'],df['sci_water_pressure'])
     CT = gsw.CT_from_t(df['sci_water_sal'],df['sci_water_temp'],df['sci_water_pressure'])
     df['sci_water_dens'] = gsw.rho_t_exact(df['sci_water_sal'],CT,df['sci_water_pressure'])
+
+    df = df.set_index('sci_m_present_time')
+    
     return df
 
 def convert_sci_df_to_ds(df:pd.DataFrame,glider_id:dict,glider:str) -> xr.Dataset:
@@ -330,10 +332,6 @@ def format_sci_ds(ds:xr.Dataset) -> xr.Dataset:
 
 def process_flight_df(df:pd.DataFrame) -> pd.DataFrame:
     '''Process flight dataframe by filtering and calculating latitude and longitude and renaming variables'''
-    # Exclude data before 2020 and after 2030
-    # df = df.reset_index()
-    # df = df[(df['m_present_time'] > '2010-01-01') & (df['m_present_time'] < '2030-01-01')]
-
     upper_date_limit = str(datetime.datetime.today().date()+datetime.timedelta(days=365))
     start_date = '2010-01-01'
     df = df.reset_index()
@@ -351,6 +349,8 @@ def process_flight_df(df:pd.DataFrame) -> pd.DataFrame:
 
     # Rename columns for clarity
     df.rename(columns={'m_lat': 'm_latitude', 'm_lon': 'm_longitude'}, inplace=True)
+
+    df = df.set_index('m_present_time')
 
     return df
 
