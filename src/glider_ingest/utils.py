@@ -89,7 +89,7 @@ def read_sci_file(file:Path) -> pd.DataFrame:
 
             df_filtered = df_raw[present_variables]
             # Parse the timestamp explicitly
-            dates = df_filtered['sci_m_present_time'].copy()
+            # dates = df_filtered['sci_m_present_time'].copy()
             # dates_datetime =  pd.to_datetime(dates, unit='s', errors='coerce')
             # df_filtered = df_filtered.assign(sci_m_present_time=dates_datetime)
             df_filtered = df_filtered.set_index('sci_m_present_time')
@@ -111,7 +111,7 @@ def read_flight_file(file:Path) -> pd.DataFrame:
             present_variables = ['m_present_time','m_lat','m_lon','m_pressure','m_water_depth']
             df_filtered = df_raw[present_variables]
             # Parse the timestamp explicitly
-            dates = df_filtered['m_present_time'].copy()
+            # dates = df_filtered['m_present_time'].copy()
             # dates_datetime =  pd.to_datetime(dates, unit='s', errors='coerce')
             # df_filtered = df_filtered.assign(m_present_time=dates_datetime)
             df_filtered = df_filtered.set_index(['m_present_time'])
@@ -142,15 +142,18 @@ def join_ascii_files(files, file_reader, max_workers=None) -> pd.DataFrame:
     df_list = [df for df in df_list if df is not None]
     df_list = [df for df in df_list if not df.empty]
     df_list = [df for df in df_list if len(df) > 0]
-    df_concat = pd.concat(df_list, axis=1)
+    df_concat = pd.concat(df_list, axis=0)
     return df_concat
 
 def process_sci_df(df:pd.DataFrame) -> pd.DataFrame:
     '''Process the data to filter and calculate salinity and density'''
-    # Remove any data with erroneous dates (outside expected dates 2010-2030)
+    # Remove any data with erroneous dates (outside expected dates 2010 through currentyear+1)
     upper_date_limit = str(datetime.datetime.today().date()+datetime.timedelta(days=365))
+    start_date = '2010-01-01'
     df = df.reset_index()
-    df = df[(df['sci_m_present_time'] > '2010-01-01') & (df['sci_m_present_time'] < upper_date_limit)]
+    # df = df[(df['sci_m_present_time'] > '2010-01-01') & (df['sci_m_present_time'] < upper_date_limit)]
+    df = df.loc[(df['sci_m_present_time'] > start_date) & (df['sci_m_present_time'] < upper_date_limit)]
+
     # Convert pressure from db to dbar
     df['sci_water_pressure'] = df['sci_water_pressure'] * 10
     # Calculate salinity and density
@@ -328,8 +331,14 @@ def format_sci_ds(ds:xr.Dataset) -> xr.Dataset:
 def process_flight_df(df:pd.DataFrame) -> pd.DataFrame:
     '''Process flight dataframe by filtering and calculating latitude and longitude and renaming variables'''
     # Exclude data before 2020 and after 2030
+    # df = df.reset_index()
+    # df = df[(df['m_present_time'] > '2010-01-01') & (df['m_present_time'] < '2030-01-01')]
+
+    upper_date_limit = str(datetime.datetime.today().date()+datetime.timedelta(days=365))
+    start_date = '2010-01-01'
     df = df.reset_index()
-    df = df[(df['m_present_time'] > '2010-01-01') & (df['m_present_time'] < '2030-01-01')]
+    df = df.loc[(df['m_present_time'] > start_date) & (df['m_present_time'] < upper_date_limit)]
+    
     # Convert pressure from db to dbar
     df['m_pressure'] = df['m_pressure'] * 10
     # Convert latitude and longitude to decimal degrees
