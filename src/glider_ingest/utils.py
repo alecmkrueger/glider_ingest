@@ -142,7 +142,7 @@ def join_ascii_files(files, file_reader, max_workers=None) -> pd.DataFrame:
     df_list = [df for df in df_list if df is not None]
     df_list = [df for df in df_list if not df.empty]
     df_list = [df for df in df_list if len(df) > 0]
-    df_concat = pd.concat(df_list, axis=0)
+    df_concat = pd.concat(df_list, axis=1)
     return df_concat
 
 def process_sci_df(df:pd.DataFrame) -> pd.DataFrame:
