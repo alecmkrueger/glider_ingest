@@ -123,7 +123,7 @@ class Processor:
     def copy_raw_data(self):
         '''
         Copy data from the memory card to the working directory using multithreading.
-        We only work on the copied data and never the source data to keep the data safe
+        We only work on the copied data and never the source data
         '''
         self.print_time_debug('Copying Raw files')
         confirmation = input(f"Do you want to copy files from '{self.raw_data_source}' to '{self.working_directory}'? Type 'yes' to confirm, 'no' to continue without deleting files, press escape to cancel and end ")
