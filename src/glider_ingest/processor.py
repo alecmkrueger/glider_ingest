@@ -3,11 +3,14 @@ Module containing the Processor class
 '''
 from attrs import define,field
 import xarray as xr
+import numpy as np
 from pathlib import Path
 import os
+from collections import Counter
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor,as_completed
 import platform
+import datetime
 
 from .utils import print_time,copy_file,rename_file,create_tasks,convert_file,clean_dir
 from .utils import process_sci_data,process_flight_data,add_gridded_data,add_global_attrs,length_validator
@@ -17,13 +20,20 @@ class Processor:
     '''Class to process and contain information about the raw glider data ingest'''
     raw_data_source:Path
     working_directory:Path
-    glider_number:str = field(converter=str)
-    mission_title:str
-    output_nc_filename:str
+    mission_number:str
+
+    mission_title:str = field(default=None)
+    output_nc_filename:str = field(default=None)
+    glider_number:str = field(default=None)
+    mission_start_date:str = field(default='2012-01-01')
     extensions:list = field(default=['DBD','EBD'],validator=length_validator)
     data_sources:list = field(default=['Flight', 'Science'],validator=length_validator)
+    glider_id:dict = field(default={'199':'Dora','307':'Reveille','308':'Howdy','540':'Stommel','541':'Sverdrup'})
+    wmo_id:dict = field(default={'199':'unknown','307':'4801938','308':'4801915','540':'4801916','541':'4801924'})
+    mission_year:int = field(default=None)
     max_workers:int|None = field(default=None)
     debug:bool = field(default=False)
+    skip_confirmation:bool = field(default=False)
 
     ds_mission:xr.Dataset = field(init=False)
     output_nc_path:Path = field(init=False)
@@ -35,8 +45,7 @@ class Processor:
 
     def __attrs_post_init__(self):
         self.package_dir = Path(os.path.dirname(os.path.abspath(__file__)))
-        self.working_directory = self.working_directory.joinpath(self.mission_title)
-        self.output_nc_path = self.working_directory.joinpath('processed','nc',self.output_nc_filename)
+        self.working_directory = self.working_directory.joinpath(f"Mission_{self.mission_number}")
         if self.max_workers is None:
             self.max_workers = multiprocessing.cpu_count()
         self.pick_executables()
@@ -98,8 +107,11 @@ class Processor:
         So to be save, always clean up the directory using this function
         '''
         self.print_time_debug('Deleting Files')
-        # Check if the user wishes to delete all files in the directory
-        confirmation = input(f"Are you sure you want to delete all files in '{self.working_directory}' and its subdirectories? Type 'yes' to confirm, 'no' to continue without deleting files, press escape to cancel and end ")
+        if self.skip_confirmation:
+            confirmation = 'yes'
+        else:
+            # Check if the user wishes to delete all files in the directory
+            confirmation = input(f"Are you sure you want to delete all files in '{self.working_directory}' and its subdirectories? Type 'yes' to confirm, 'no' to continue without deleting files, press escape to cancel and end ")
         # If so then begin finding files
         if confirmation.lower() == 'yes':
             # clear cache
@@ -126,7 +138,10 @@ class Processor:
         We only work on the copied data and never the source data
         '''
         self.print_time_debug('Copying Raw files')
-        confirmation = input(f"Do you want to copy files from '{self.raw_data_source}' to '{self.working_directory}'? Type 'yes' to confirm, 'no' to continue without deleting files, press escape to cancel and end ")
+        if self.skip_confirmation:
+            confirmation = 'yes'
+        else:
+            confirmation = input(f"Do you want to copy files from '{self.raw_data_source}' to '{self.working_directory}'? Type 'yes' to confirm, 'no' to continue without deleting files, press escape to cancel and end ")
         # If so then begin finding files
         if confirmation.lower() == 'yes':
             raw_output_data_dir = self.working_directory.joinpath('raw_copy')
@@ -188,6 +203,66 @@ class Processor:
 
         self.print_time_debug("Done renaming files")
 
+    def get_glider_number(self):
+        """
+        Determines the most frequent valid instrument name in the first 10 files,
+        provided it appears at least 4 times. Returns the valid instrument name.
+        
+        return: The valid instrument name or None if no valid name is found
+        """
+        # If the glider number is supplied by user, do not try to find it
+        if self.glider_number is None:
+            def extract_instrument_name(filename, instrument_dict):
+                # Check for instrument names in filename
+                for key, value in instrument_dict.items():
+                    if key in filename or value in filename:
+                        return key if key in filename else value
+                return None
+
+            # Get the first 10 files from the folder
+            raw_copy_directory = self.working_directory.joinpath('raw_copy')
+            
+            # Get the first 10 files from the folder with the desired extensions
+            files = list(raw_copy_directory.rglob('*dbd'))[10:20]
+
+            # Count occurrences of instrument names in files
+            instrument_counter = Counter()
+            for file in files:
+                instrument_name = extract_instrument_name(file.name, self.glider_id)
+                if instrument_name:
+                    instrument_counter[instrument_name] += 1
+
+            # Find the instrument name with the highest count
+            if instrument_counter:
+                most_common_instrument, count = instrument_counter.most_common(1)[0]
+                
+                self.glider_number = most_common_instrument
+            
+            if self.glider_number is None:
+                # Return None if no valid instrument is found
+                raise ValueError('Could not find the glider number, please provide the glider number')
+        
+    def get_mission_year(self):
+        if self.mission_start_date != '2012-01-01':
+            self.mission_year = datetime.date(self.mission_start_date).year
+        else:
+            raw_copy_directory = self.working_directory.joinpath('raw_copy')
+            file = list(raw_copy_directory.rglob('*dbd'))[30]
+            file = file.stem
+            year_loc = file.find('-')+1
+            mission_year = file[year_loc:year_loc+4]
+            self.mission_year = mission_year
+
+    def make_mission_title(self):
+        if self.mission_title is None:
+            ''''''
+            self.mission_title = f'Mission_{self.mission_number}_{self.glider_number}'
+
+    def make_output_nc_filename(self):
+        if self.output_nc_filename is None:
+            self.output_nc_filename = f'M{self.mission_number}_{self.mission_year}_{self.glider_number}.nc'
+        self.output_nc_path = self.working_directory.joinpath('processed','nc',self.output_nc_filename)
+
     def convert_binary_to_ascii(self):
         '''Converts binary files to ascii in the input directory and saves them to the output directory'''
         
@@ -218,18 +293,15 @@ class Processor:
 
         science_data_dir:Path = processed_directory.joinpath('Science')
         flight_data_dir:Path = processed_directory.joinpath('Flight')
-
-        glider_id = {'199':'Dora','307':'Reveille','308':'Howdy','540':'Stommel','541':'Sverdrup'}
-        wmo_id = {'199':'unknown','307':'4801938','308':'4801915','540':'4801916','541':'4801924'}
         
         # Process Science Data
-        ds_sci:xr.Dataset = process_sci_data(science_data_dir,glider_id,self.glider_number,wmo_id)
+        ds_sci:xr.Dataset = process_sci_data(science_data_dir,self.glider_id,self.glider_number,self.wmo_id,mission_start_date=self.mission_start_date)
 
         # Make a copy of the science dataset
         ds_mission:xr.Dataset = ds_sci.copy()
 
         # Process Flight Data
-        ds_fli:xr.Dataset = process_flight_data(flight_data_dir)
+        ds_fli:xr.Dataset = process_flight_data(flight_data_dir,mission_start_date=self.mission_start_date)
 
         # Add flight data to mission dataset
         ds_mission.update(ds_fli)
@@ -238,7 +310,7 @@ class Processor:
         ds_mission = add_gridded_data(ds_mission)
 
         # Add attributes to the mission dataset
-        self.ds_mission = add_global_attrs(ds_mission,mission_title=self.mission_title,wmo_id=wmo_id,glider=self.glider_number)
+        self.ds_mission = add_global_attrs(ds_mission,mission_title=self.mission_title,wmo_id=self.wmo_id,glider=self.glider_number)
 
         self.print_time_debug('Finished converting ascii to dataset')
 
@@ -263,6 +335,10 @@ class Processor:
         self.delete_files_in_directory()
         self.copy_raw_data()
         self.rename_binary_files()
+        self.get_mission_year()
+        self.get_glider_number()
+        self.make_mission_title()
+        self.make_output_nc_filename()
         self.convert_binary_to_ascii()
         self.convert_ascii_to_dataset()
         self.save_ds()

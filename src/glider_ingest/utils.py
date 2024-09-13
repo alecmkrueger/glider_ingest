@@ -102,6 +102,7 @@ def read_sci_file(file:Path) -> pd.DataFrame:
                 df_filtered['sci_m_present_time'] = pd.to_datetime(df_filtered['sci_m_present_time'], unit='s', errors='coerce')
                 # df_filtered = process_sci_df(df_filtered)
                 df_filtered = df_filtered.set_index('sci_m_present_time')
+                df_filtered = df_filtered.dropna()
             else:
                 df_filtered = None
         else:
@@ -134,6 +135,7 @@ def read_flight_file(file: Path) -> pd.DataFrame:
                 
                 if not df_filtered.empty:
                     df_filtered.set_index('m_present_time', inplace=True)
+                    df_filtered = df_filtered.dropna()
                 else:
                     df_filtered = None
             else: 
@@ -144,12 +146,10 @@ def read_flight_file(file: Path) -> pd.DataFrame:
     except Exception as e:
         print(f'Unable to read and skipping: {file.stem} due to {e}')
         df_filtered = None
-
+    
     return df_filtered
 
 def join_ascii_files(files, file_reader, max_workers=None) -> pd.DataFrame:
-    print_time('Joining ascii files')
-
     # Set default max_workers based on CPU count if not provided
     if max_workers is None:
         max_workers = multiprocessing.cpu_count()
@@ -169,17 +169,15 @@ def join_ascii_files(files, file_reader, max_workers=None) -> pd.DataFrame:
         df_concat = pd.DataFrame()
 
     df_concat = df_concat.reset_index()
-
-    print_time('Done joining ascii files')
     return df_concat
 
 
 
-def process_sci_df(df:pd.DataFrame) -> pd.DataFrame:
+def process_sci_df(df:pd.DataFrame,start_date:str) -> pd.DataFrame:
     '''Process the data to filter and calculate salinity and density'''
     # Remove any data with erroneous dates (outside expected dates 2010 through currentyear+1)
     upper_date_limit = str(datetime.datetime.today().date()+datetime.timedelta(days=365))
-    start_date = '2010-01-01'
+    # start_date = '2010-01-01'
     df = df.reset_index()
     df = df.loc[(df['sci_m_present_time'] > start_date) & (df['sci_m_present_time'] < upper_date_limit)]
 
@@ -190,6 +188,7 @@ def process_sci_df(df:pd.DataFrame) -> pd.DataFrame:
     CT = gsw.CT_from_t(df['sci_water_sal'],df['sci_water_temp'],df['sci_water_pressure'])
     df['sci_water_dens'] = gsw.rho_t_exact(df['sci_water_sal'],CT,df['sci_water_pressure'])
 
+    df = df.dropna()
     # df = df.set_index('sci_m_present_time')
     
     return df
@@ -360,11 +359,11 @@ def format_sci_ds(ds:xr.Dataset) -> xr.Dataset:
         'sci_water_cond':'conductivity','sci_water_sal':'salinity','sci_water_dens':'density'})
     return ds
 
-def process_flight_df(df: pd.DataFrame) -> pd.DataFrame:
+def process_flight_df(df: pd.DataFrame,start_date:str) -> pd.DataFrame:
     '''Process flight dataframe by filtering and calculating latitude and longitude and renaming variables.'''
     # Remove any data with erroneous dates (outside expected dates 2010 through currentyear+1)
     upper_date_limit = str(datetime.datetime.today().date()+datetime.timedelta(days=365))
-    start_date = '2010-01-01'
+    # start_date = '2010-01-01'
     df = df.reset_index()
     df = df.loc[(df['m_present_time'] > start_date) & (df['m_present_time'] < upper_date_limit)]
     # Convert pressure from db to dbar
@@ -381,7 +380,7 @@ def process_flight_df(df: pd.DataFrame) -> pd.DataFrame:
 
     # Rename columns for clarity
     df.rename(columns={'m_lat': 'm_latitude', 'm_lon': 'm_longitude'}, inplace=True)
-
+    df = df.dropna()
     return df
 
 
@@ -472,28 +471,28 @@ def format_flight_ds(ds:xr.Dataset) -> xr.Dataset:
 
     return ds
 
-def process_sci_data(science_data_dir,glider_id,glider,wmo_id) -> xr.Dataset:
+def process_sci_data(science_data_dir,glider_id,glider,wmo_id,mission_start_date) -> xr.Dataset:
     '''Perform all processing of science data from ascii to pandas dataframe to xarray dataset'''
     print_time('Processing Science Data')
     # Process Science Data
     sci_files = list(science_data_dir.rglob("*.asc"))
     sci_files = sort_by_numbers(sci_files)
     df_sci = join_ascii_files(sci_files,read_sci_file)
-    df_sci = process_sci_df(df_sci)
+    df_sci = process_sci_df(df_sci,start_date=mission_start_date)
     ds_sci = convert_sci_df_to_ds(df_sci,glider_id,glider)
     ds_sci = add_sci_attrs(ds_sci,glider_id,glider,wmo_id)
     ds_sci = format_sci_ds(ds_sci)
     print_time('Finished Processing Science Data')
     return ds_sci
 
-def process_flight_data(flight_data_dir) -> xr.Dataset:
+def process_flight_data(flight_data_dir,mission_start_date) -> xr.Dataset:
     '''Perform all processing of flight data from ascii to pandas dataframe to xarray dataset'''
     print_time('Processing Flight Data')
     # Process Flight Data
     fli_files = list(flight_data_dir.rglob("*.asc"))
     fli_files = sort_by_numbers(fli_files)
     df_fli = join_ascii_files(fli_files,read_flight_file)
-    df_fli = process_flight_df(df_fli)
+    df_fli = process_flight_df(df_fli,start_date=mission_start_date)
     ds_fli = convert_fli_df_to_ds(df_fli)
     ds_fli = add_flight_attrs(ds_fli)
     ds_fli = format_flight_ds(ds_fli)
