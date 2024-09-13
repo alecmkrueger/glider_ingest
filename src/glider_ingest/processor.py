@@ -244,7 +244,7 @@ class Processor:
         
     def get_mission_year(self):
         if self.mission_start_date != '2012-01-01':
-            self.mission_year = datetime.date(self.mission_start_date).year
+            self.mission_year = datetime.datetime.strptime(self.mission_start_date, "%Y-%m-%d").date().year
         else:
             raw_copy_directory = self.working_directory.joinpath('raw_copy')
             file = list(raw_copy_directory.rglob('*dbd'))[30]
