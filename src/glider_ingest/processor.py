@@ -215,7 +215,7 @@ class Processor:
             def extract_instrument_name(filename, instrument_dict):
                 # Check for instrument names in filename
                 for key, value in instrument_dict.items():
-                    if key in filename or value in filename:
+                    if key.lower() in filename or value.lower() in filename:
                         return key if key in filename else value
                 return None
 
@@ -228,7 +228,7 @@ class Processor:
             # Count occurrences of instrument names in files
             instrument_counter = Counter()
             for file in files:
-                instrument_name = extract_instrument_name(file.name, self.glider_id)
+                instrument_name = extract_instrument_name(file.name.lower(), self.glider_id)
                 if instrument_name:
                     instrument_counter[instrument_name] += 1
 
