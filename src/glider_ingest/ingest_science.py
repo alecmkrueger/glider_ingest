@@ -57,7 +57,7 @@ def load_science(files,cache_loc,mission_start_date:str='2010-01-01'):
     df['sci_water_dens'] = gsw.rho_t_exact(df['sci_water_sal'],CT,df['sci_water_pressure'])
 
     df = df.dropna()
-
+    dbd.close()
     return df
 
 def convert_sci_df_to_ds(df:pd.DataFrame,glider_id:str) -> xr.Dataset:

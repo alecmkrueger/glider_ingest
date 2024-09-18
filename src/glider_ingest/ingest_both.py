@@ -93,20 +93,17 @@ def add_global_attrs(ds_mission:xr.Dataset,mission_title:str,wmo_id:dict) -> xr.
 
     return ds_mission
 
-def combine_flight_science(mission_start_date,mission_title,wmo_id,glider_id):
+def combine_flight_science(memory_card_copy_loc,mission_start_date,mission_title,wmo_id,glider_id):
     # Process Science Data
-    files = list(Path("G:/Shared drives/Slocum Gliders/Mission Data & Files/2024 Missions/Mission 46/Memory card copy/Science_card/logs").rglob("*.ebd"))
-    files = [str(file) for file in files][:50]
-    cache_loc = "G:/Shared drives/Slocum Gliders/Mission Data & Files/2024 Missions/Mission 46/Memory card copy/Science_card/state/cache"
-    ds_sci = process_sci_data(files,cache_loc,glider_id=glider_id,wmo_id=wmo_id,mission_start_date=mission_start_date)
-
-    # Make a copy of the science dataset
-    ds_mission:xr.Dataset = ds_sci.copy()
+    files = list(Path(f"{memory_card_copy_loc}/Science_card/logs").rglob("*.ebd"))
+    files = [str(file) for file in files]
+    cache_loc = f"{memory_card_copy_loc}/Science_card/state/cache"
+    ds_mission = process_sci_data(files,cache_loc,glider_id=glider_id,wmo_id=wmo_id,mission_start_date=mission_start_date)
 
     # Process Flight Data
-    files = list(Path("G:/Shared drives/Slocum Gliders/Mission Data & Files/2024 Missions/Mission 46/Memory card copy/Flight_card/logs").rglob("*.dbd"))
-    files = [str(file) for file in files][:50]
-    cache_loc = "G:/Shared drives/Slocum Gliders/Mission Data & Files/2024 Missions/Mission 46/Memory card copy/Flight_card/state/cache"
+    files = list(Path(f"{memory_card_copy_loc}/Flight_card/logs").rglob("*.dbd"))
+    files = [str(file) for file in files]
+    cache_loc = f"{memory_card_copy_loc}/Flight_card/state/cache"
     ds_fli = process_flight_data(files,cache_loc,mission_start_date)
 
     # Add flight data to mission dataset
@@ -122,4 +119,15 @@ def combine_flight_science(mission_start_date,mission_title,wmo_id,glider_id):
 
     return ds_mission
 
-ds_mission = combine_flight_science(mission_start_date='2014-01-01',mission_title='Mission 46',wmo_id='4801915',glider_id='1148')
+# memory_card_copy_loc = "G:/Shared drives/Slocum Gliders/Mission Data & Files/2024 Missions/Mission 46/Memory card copy"
+# mission_start_date = '2024-06-17'
+# mission_title = 'Mission 46'
+# wmo_id = '4801915'
+# glider_id = '1148'
+
+# ds_mission = combine_flight_science(memory_card_copy_loc=memory_card_copy_loc,
+#                                     mission_start_date=mission_start_date,
+#                                     mission_title=mission_title,
+#                                     wmo_id=wmo_id,glider_id=glider_id)
+
+# ds_mission.to_netcdf('M46_2024_1148.nc')

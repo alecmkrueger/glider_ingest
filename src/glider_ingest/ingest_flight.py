@@ -41,7 +41,7 @@ def load_flight(files,cache_loc,mission_start_date):
     # Rename columns for clarity
     df.rename(columns={'m_lat': 'm_latitude', 'm_lon': 'm_longitude'}, inplace=True)
     df = df.dropna()
-
+    dbd.close()
     return df
 
 def convert_fli_df_to_ds(df:pd.DataFrame) -> xr.Dataset:
