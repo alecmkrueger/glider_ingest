@@ -7,10 +7,10 @@ import datetime
 
 from glider_ingest.utils import print_time
 
-def load_flight(mission_start_date):
-    files = list(Path("G:/Shared drives/Slocum Gliders/Mission Data & Files/2024 Missions/Mission 46/Memory card copy/Flight_card/logs").rglob("*.dbd"))
-    files = [str(file) for file in files]
-    cache_loc = "G:/Shared drives/Slocum Gliders/Mission Data & Files/2024 Missions/Mission 46/Memory card copy/Flight_card/state/cache"
+def load_flight(files,cache_loc,mission_start_date):
+    # files = list(Path("G:/Shared drives/Slocum Gliders/Mission Data & Files/2024 Missions/Mission 46/Memory card copy/Flight_card/logs").rglob("*.dbd"))
+    # files = [str(file) for file in files][:20]
+    # cache_loc = "G:/Shared drives/Slocum Gliders/Mission Data & Files/2024 Missions/Mission 46/Memory card copy/Flight_card/state/cache"
     dbd = dbdreader.MultiDBD(files,cacheDir=cache_loc)
 
     test = dbd.get_sync('m_lat', 'm_lon', 'm_pressure','m_water_depth')
@@ -21,13 +21,10 @@ def load_flight(mission_start_date):
 
     df['m_present_time'] = pd.to_datetime(df['m_present_time'],unit='s')
 
-    df = df.set_index(['m_present_time'])
-
     '''Process flight dataframe by filtering and calculating latitude and longitude and renaming variables.'''
     # Remove any data with erroneous dates (outside expected dates 2010 through currentyear+1)
     upper_date_limit = str(datetime.datetime.today().date()+datetime.timedelta(days=365))
     # start_date = '2010-01-01'
-    df = df.reset_index()
     df = df.loc[(df['m_present_time'] > mission_start_date) & (df['m_present_time'] < upper_date_limit)]
     # Convert pressure from db to dbar
     df['m_pressure'] *= 10
@@ -135,15 +132,14 @@ def format_flight_ds(ds:xr.Dataset) -> xr.Dataset:
     return ds
 
 
-def process_flight_data(mission_start_date) -> xr.Dataset:
+def process_flight_data(files,cache_loc,mission_start_date) -> xr.Dataset:
     '''Perform all processing of flight data from dbd to pandas dataframe to xarray dataset'''
     # Process Flight Data
     print_time('Processing Flight Data')
-    df_fli = load_flight(mission_start_date)
+    df_fli = load_flight(files,cache_loc,mission_start_date)
     ds_fli = convert_fli_df_to_ds(df_fli)
     ds_fli = add_flight_attrs(ds_fli)
     ds_fli = format_flight_ds(ds_fli)
     print_time('Finised Processing Flight Data')
     return ds_fli
 
-ds_fli = process_flight_data('2024-01-01')

@@ -189,7 +189,6 @@ def process_sci_df(df:pd.DataFrame,start_date:str) -> pd.DataFrame:
     df['sci_water_dens'] = gsw.rho_t_exact(df['sci_water_sal'],CT,df['sci_water_pressure'])
 
     df = df.dropna()
-    # df = df.set_index('sci_m_present_time')
     
     return df
 
@@ -468,7 +467,6 @@ def format_flight_ds(ds:xr.Dataset) -> xr.Dataset:
     ds['index'] = np.sort(ds['m_present_time'].values.astype('datetime64[ns]'))
     ds = ds.drop_vars('m_present_time')
     ds = ds.rename({'index': 'm_time','m_pressure':'m_pressure','m_water_depth':'depth','m_latitude':'latitude','m_longitude':'longitude'})
-
     return ds
 
 def process_sci_data(science_data_dir,glider_id,glider,wmo_id,mission_start_date) -> xr.Dataset:
