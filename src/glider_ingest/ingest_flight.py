@@ -14,8 +14,8 @@ class FlightProcessor:
     mission_data:MissionData
   
     def load_flight(self):
-        self.mission_data.get_fli_files('dbd')
-        dbd = dbdreader.MultiDBD(self.mission_data.files,cacheDir=self.mission_data.cache_loc)
+        files = self.mission_data.get_fli_files('dbd')
+        dbd = dbdreader.MultiDBD(files,cacheDir=self.mission_data.fli_cache_loc)
         data = dbd.get_sync('m_lat', 'm_lon', 'm_pressure','m_water_depth')
 
         self.mission_data.df_fli = pd.DataFrame(data).T
