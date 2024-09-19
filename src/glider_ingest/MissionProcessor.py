@@ -6,8 +6,8 @@ from attrs import define,field
 from pathlib import Path
 
 from glider_ingest.MissionData import MissionData
-from glider_ingest.ingest_science import ScienceProcessor
-from glider_ingest.ingest_flight import FlightProcessor
+from glider_ingest.ScienceProcessor import ScienceProcessor
+from glider_ingest.FlightProcessor import FlightProcessor
 from glider_ingest.utils import add_gridded_data,get_polygon_coords
 
 
