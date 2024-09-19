@@ -3,9 +3,12 @@ import xarray as xr
 import pandas as pd
 from pathlib import Path
 import uuid
-from glider_ingest.ingest_science import process_sci_data
-from glider_ingest.ingest_flight import process_flight_data
+from attrs import define,field
+
+from glider_ingest.ingest_science import ScienceProcessor
+from glider_ingest.ingest_flight import FlightProcessor
 from glider_ingest.utils import add_gridded_data,add_global_attrs,print_time
+
 
 def get_polygon_coords(ds_mission:xr.Dataset) -> str:
     '''Get the polygon coords for the dataset global attributes'''
@@ -95,16 +98,15 @@ def add_global_attrs(ds_mission:xr.Dataset,mission_title:str,wmo_id:dict) -> xr.
 
 def combine_flight_science(memory_card_copy_loc,mission_start_date,mission_title,wmo_id,glider_id):
     # Process Science Data
-    files = list(Path(f"{memory_card_copy_loc}/Science_card/logs").rglob("*.ebd"))
-    files = [str(file) for file in files]
-    cache_loc = f"{memory_card_copy_loc}/Science_card/state/cache"
-    ds_mission = process_sci_data(files,cache_loc,glider_id=glider_id,wmo_id=wmo_id,mission_start_date=mission_start_date)
+    sci_processor = ScienceProcessor(mission_start_date=mission_start_date,
+                                     mission_title=mission_title,
+                                     memory_card_copy_loc=memory_card_copy_loc,glider_id=glider_id)
+    sci_processor.process_sci_data()
+    ds_mission = process_sci_data(memory_card_copy_loc,glider_id=glider_id,wmo_id=wmo_id,mission_start_date=mission_start_date)
 
     # Process Flight Data
-    files = list(Path(f"{memory_card_copy_loc}/Flight_card/logs").rglob("*.dbd"))
-    files = [str(file) for file in files]
-    cache_loc = f"{memory_card_copy_loc}/Flight_card/state/cache"
-    ds_fli = process_flight_data(files,cache_loc,mission_start_date)
+
+    ds_fli = process_flight_data(memory_card_copy_loc,mission_start_date)
 
     # Add flight data to mission dataset
     ds_mission.update(ds_fli)
@@ -118,6 +120,9 @@ def combine_flight_science(memory_card_copy_loc,mission_start_date,mission_title
     print_time('Finished converting ascii to dataset')
 
     return ds_mission
+
+
+
 
 # memory_card_copy_loc = "G:/Shared drives/Slocum Gliders/Mission Data & Files/2024 Missions/Mission 46/Memory card copy"
 # mission_start_date = '2024-06-17'

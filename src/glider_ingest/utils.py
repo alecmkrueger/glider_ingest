@@ -35,6 +35,13 @@ def print_time(message):
     # Print out the message
     print(whole_message)
 
+def find_nth(haystack: str, needle: str, n: int) -> int:
+    start = haystack.find(needle)
+    while start >= 0 and n > 1:
+        start = haystack.find(needle, start+len(needle))
+        n -= 1
+    return start
+
 def length_validator(instance, attribute, value):
     '''Validator to ensure the attribute has exactly length 2.'''
     if len(value) != 2:
