@@ -42,6 +42,9 @@ def find_nth(haystack: str, needle: str, n: int) -> int:
         n -= 1
     return start
 
+def invert_dict(dict:dict) -> dict:
+    return {value:key for key,value in dict.items()}
+
 def length_validator(instance, attribute, value):
     '''Validator to ensure the attribute has exactly length 2.'''
     if len(value) != 2:

@@ -4,7 +4,7 @@ from pathlib import Path
 from attrs import define,field
 import datetime
 
-from glider_ingest.utils import find_nth
+from glider_ingest.utils import find_nth,invert_dict
 
 @define
 class MissionData:
@@ -12,16 +12,15 @@ class MissionData:
     memory_card_copy_loc:Path
     working_dir:Path
     mission_num:str
-    glider_id:str
 
     # Optional Variables
+    glider_id:str = field(default=None)
     nc_filename:str = field(default=None)
     output_nc_path:Path = field(default=None)
     mission_start_date:str|None = field(default=None)
     mission_end_date:str|None = field(default=None)
     mission_year:str = field(default=None)
     glider_ids:dict = field(default={'199':'Dora','307':'Reveille','308':'Howdy','540':'Stommel','541':'Sverdrup','1148':'unit_1148'})
-    glider_ids_invert:dict =  field(default={'Dora': '199', 'Reveille': '307', 'Howdy': '308', 'Stommel': '540', 'Sverdrup': '541', 'unit_1148': '1148'})
     wmo_ids:dict = field(default={'199':'unknown','307':'4801938','308':'4801915','540':'4801916','541':'4801924','1148':'4801915'})
 
     # Post init variables
@@ -64,15 +63,23 @@ class MissionData:
         files = self.get_sci_files('dbd')
         file = files[0]
         fp = open(file, errors="ignore")
-        for i, line in enumerate(fp):
-            if i==5:
+        for line in enumerate(fp):
+            if 'full_filename' in line:
                 name = line.replace('full_filename:','').strip()
-                year = name[name.find('-')+1:find_nth(name,'-',2)].strip()
-                name = name[:name.find('-')].strip()
-                print(f'{name = }')
-                print(f'{year = }')
-            if i>5:
-                break
+                self.mission_year = name[name.find('-')+1:find_nth(name,'-',2)].strip()
+                glider_name = name[:name.find('-')].strip()
+                inverted_glider_ids = invert_dict(self.glider_ids)
+                # Get the glider_id using the glider_name, sometimes the name given by full_filename is the key and other times its the value
+                try:
+                    self.glider_id = inverted_glider_ids[glider_name]
+                except KeyError:
+                    raise ValueError(f'Could not find glider_id, please pass glider_id. Must be one of {list(self.glider_ids.keys())}')
+                
+                print(f'{self.mission_year = }')
+                print(f'{glider_name = }')
+                print(f'{self.glider_id = }')
+        if self.glider_id is None:
+            raise ValueError(f'Could not find glider_id, please pass glider_id. Must be one of {list(self.glider_ids.keys())}')
         fp.close()
 
     def get_nc_filename(self):

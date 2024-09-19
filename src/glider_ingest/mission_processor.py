@@ -90,14 +90,16 @@ class MissionProcessor:
     def process_sci(self):
         sci_processor = ScienceProcessor(mission_data=self.mission_data)
         sci_processor.process_sci_data()
+        return sci_processor.mission_data
 
     def process_fli(self):
         fli_processor = FlightProcessor(mission_data=self.mission_data)
         fli_processor.process_flight_data()
+        return fli_processor.mission_data
     
     def generate_mission_dataset(self):
-        self.process_sci()
-        self.process_fli()
+        self.mission_data = self.process_sci()
+        self.mission_data = self.process_fli()
 
         # Combine sci and fli datasets
         self.ds_mission = self.mission_data.ds_sci.copy()
