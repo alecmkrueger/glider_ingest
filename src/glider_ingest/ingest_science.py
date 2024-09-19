@@ -14,7 +14,7 @@ class ScienceProcessor:
 
     mission_data:MissionData
 
-    def get_sci_vars(variables:list):
+    def get_sci_vars(self,variables:list):
         # Define subsets of columns based on the presence of sci_oxy4_oxygen and sci_flbbcd_bb_units
         if 'sci_oxy4_oxygen' in variables and 'sci_flbbcd_bb_units' in variables:
                 present_variables = ['sci_flbbcd_bb_units', 'sci_flbbcd_cdom_units', 'sci_flbbcd_chlor_units', 'sci_water_pressure', 'sci_water_temp', 'sci_water_cond', 'sci_oxy4_oxygen']
@@ -32,10 +32,10 @@ class ScienceProcessor:
 
     def load_science(self):
         files = self.mission_data.get_sci_files('ebd')
-        dbd = dbdreader.MultiDBD(files,cacheDir=self.mission_data.cache_loc)
+        dbd = dbdreader.MultiDBD(files,cacheDir=self.mission_data.sci_cache_loc)
 
         all_variables = dbd.parameterNames['sci']
-        present_variables = self.mission_data.get_sci_vars(all_variables)
+        present_variables = self.get_sci_vars(all_variables)
         vars = dbd.get_sync(*present_variables)
 
         self.mission_data.df_sci = pd.DataFrame(vars).T
