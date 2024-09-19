@@ -7,3 +7,5 @@
 
 Module to ingest and process raw glider data into NetCDF files
 '''
+from .MissionProcessor import MissionProcessor
+from .MissionData import MissionData
