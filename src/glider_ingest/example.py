@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from glider_ingest.mission_processor import MissionProcessor
+from glider_ingest.MissionProcessor import MissionProcessor
 from glider_ingest.MissionData import MissionData
 
 

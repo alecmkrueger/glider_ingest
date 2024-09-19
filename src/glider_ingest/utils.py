@@ -14,7 +14,7 @@ import gsw
 import multiprocessing
 import uuid
 from concurrent.futures import ThreadPoolExecutor
-from .gridder import Gridder
+from .Gridder import Gridder
 import dask.dataframe as dd
 import re
 
