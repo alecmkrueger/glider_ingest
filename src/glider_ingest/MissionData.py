@@ -117,12 +117,12 @@ class MissionData:
             try:
                 files = list(files_loc.rglob(f'*.{extension}'))
                 files = [str(file) for file in files]
-                if len(files) ==0 :
+                if len(files)<11 :
                     raise ValueError(f'No Files found at {files_loc}')
             except ValueError:
                 files = list(files_loc.rglob(f'*.{extension.upper()}'))
                 files = [str(file) for file in files]
-                if len(files) ==0 :
+                if len(files)<11 :
                     raise ValueError(f'No Files found at {files_loc}')
             return files
         else: 
