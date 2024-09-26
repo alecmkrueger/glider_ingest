@@ -77,12 +77,20 @@ class MissionData:
                 name = line.replace('full_filename:','').strip()
                 self.mission_year = name[name.find('-')+1:find_nth(name,'-',2)].strip()
                 self.glider_name = name[:name.find('-')].strip()
+                self.glider_name = self.glider_name.replace('unit_','')
                 inverted_glider_ids = invert_dict(self.glider_ids)
                 # Get the glider_id using the glider_name, sometimes the name given by full_filename is the key and other times its the value
                 try:
-                    self.glider_id = inverted_glider_ids[self.glider_name]
-                except KeyError:
-                    raise ValueError(f'Could not find glider_id, please pass glider_id. Must be one of {list(self.glider_ids.keys())}')
+                    self.glider_name = self.glider_ids[self.glider_name]
+                    if self.glider_id is None:
+                        self.glider_id = inverted_glider_ids[self.glider_name]
+                except KeyError as e:
+                    try:
+                        self.glider_name = inverted_glider_ids[self.glider_name]
+                        if self.glider_id is None:
+                            self.glider_id = self.glider_ids[self.glider_name]
+                    except KeyError as e:
+                        raise ValueError(f'Could not find glider_id, please pass glider_id. Must be one of {list(self.glider_ids.keys())} ({e})')
         # Check if we found the glider_id in the file
         if self.glider_id is None:
             raise ValueError(f'Could not find glider_id, please pass glider_id. Must be one of {list(self.glider_ids.keys())}')
@@ -117,12 +125,12 @@ class MissionData:
             try:
                 files = list(files_loc.rglob(f'*.{extension}'))
                 files = [str(file) for file in files]
-                if len(files)<11 :
+                if len(files) ==0 :
                     raise ValueError(f'No Files found at {files_loc}')
             except ValueError:
                 files = list(files_loc.rglob(f'*.{extension.upper()}'))
                 files = [str(file) for file in files]
-                if len(files)<11 :
+                if len(files) ==0 :
                     raise ValueError(f'No Files found at {files_loc}')
             return files
         else: 
