@@ -69,7 +69,7 @@ class MissionData:
             self.mission_start_date = '2010-01-01'
 
     def get_mission_year_and_glider(self):
-        files = self.get_sci_files('ebd')
+        files = self.get_files(files_loc=self.sci_files_loc,extension='ebd')
         file = files[10]            
         fp = open(file, errors="ignore")
         for line in fp:
@@ -111,21 +111,20 @@ class MissionData:
         '''Get glider wmo id from glider id and dict of wmo ids'''
         self.wmo_id = self.wmo_ids[self.glider_id]
 
-    def get_fli_files(self,extension):
+    def get_files(self,files_loc:Path,extension:str):
         '''Get files to process from files_loc'''
-        if self.fli_files_loc.exists():
-            files = list(self.fli_files_loc.rglob(f'*.{extension}'))
-            files = [str(file) for file in files]
+        if files_loc.exists():
+            try:
+                files = list(files_loc.rglob(f'*.{extension}'))
+                files = [str(file) for file in files]
+                if len(files) ==0 :
+                    raise ValueError(f'No Files found at {files_loc}')
+            except ValueError:
+                files = list(files_loc.rglob(f'*.{extension.upper()}'))
+                files = [str(file) for file in files]
+                if len(files) ==0 :
+                    raise ValueError(f'No Files found at {files_loc}')
             return files
         else: 
-            raise ValueError(f'Invaid path for files: {self.fli_files_loc}')
-
-    def get_sci_files(self,extension):
-        '''Get files to process from files_loc'''
-        if self.sci_files_loc.exists():
-            files = list(self.sci_files_loc.rglob(f'*.{extension}'))
-            files = [str(file) for file in files]
-            return files
-        else: 
-            raise ValueError(f'Invaid path for files: {self.sci_files_loc}')
+            raise ValueError(f'Invaid path for files: {files_loc}')
         

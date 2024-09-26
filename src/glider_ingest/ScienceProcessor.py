@@ -31,7 +31,7 @@ class ScienceProcessor:
         return present_variables
 
     def load_science(self):
-        files = self.mission_data.get_sci_files('ebd')
+        files = self.mission_data.get_files(files_loc=self.mission_data.sci_files_loc,extension='ebd')
         dbd = dbdreader.MultiDBD(files,cacheDir=self.mission_data.sci_cache_loc)
 
         all_variables = dbd.parameterNames['sci']
