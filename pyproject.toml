@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "glider-ingest"
-version = "1.1.12"
+version = "1.1.13"
 description = "Package for GERG to ingest raw glider data into NetCDF files"
 authors = ["Alec <alecmkrueger@tamu.edu>"]
 readme = "README.md"
