@@ -26,15 +26,6 @@ class FlightProcessor:
         self.mission_data.df_fli = self.mission_data.df_fli.loc[(self.mission_data.df_fli['m_present_time'] > self.mission_data.mission_start_date) & (self.mission_data.df_fli['m_present_time'] < self.mission_data.mission_end_date)]
         # Convert pressure from db to dbar
         self.mission_data.df_fli['m_pressure'] *= 10
-        
-        # Convert latitude and longitude to decimal degrees in one step using vectorization
-        self.mission_data.df_fli['m_lat'] /= 100.0
-        lat_sign = np.sign(self.mission_data.df_fli['m_lat'])
-        self.mission_data.df_fli['m_lat'] = lat_sign * (np.floor(np.abs(self.mission_data.df_fli['m_lat'])) + (np.abs(self.mission_data.df_fli['m_lat']) % 1) / 0.6)
-
-        self.mission_data.df_fli['m_lon'] /= 100.0
-        lon_sign = np.sign(self.mission_data.df_fli['m_lon'])
-        self.mission_data.df_fli['m_lon'] = lon_sign * (np.floor(np.abs(self.mission_data.df_fli['m_lon'])) + (np.abs(self.mission_data.df_fli['m_lon']) % 1) / 0.6)
 
         # Rename columns for clarity
         self.mission_data.df_fli.rename(columns={'m_lat': 'm_latitude', 'm_lon': 'm_longitude'}, inplace=True)
