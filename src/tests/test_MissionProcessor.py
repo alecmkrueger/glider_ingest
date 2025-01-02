@@ -4,7 +4,6 @@ import xarray as xr
 import uuid
 from pathlib import Path
 import pytest
-from datetime import datetime
 
 from glider_ingest.MissionProcessor import MissionProcessor
 from glider_ingest.MissionData import MissionData
@@ -52,6 +51,7 @@ def test_add_global_attrs(mission_processor, sample_mission_dataset):
     assert attrs['platform_type'] == 'Slocum Glider'
     assert attrs['wmo_id'] == mission_processor.mission_data.wmo_id
 
+@pytest.mark.slow
 def test_generate_mission_dataset(mission_processor):
     mission_processor.generate_mission_dataset()
     
@@ -97,6 +97,7 @@ def test_save_mission_dataset(mission_processor, sample_mission_dataset, tmp_pat
     loaded_ds = xr.open_dataset(mission_processor.mission_data.output_nc_path)
     assert isinstance(loaded_ds, xr.Dataset)
 
+@pytest.mark.slow
 def test_dataset_integration(mission_processor, sample_mission_dataset):
     mission_processor.mission_data.ds_sci = sample_mission_dataset
     mission_processor.mission_data.ds_fli = sample_mission_dataset
