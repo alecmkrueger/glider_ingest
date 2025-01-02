@@ -27,7 +27,7 @@ def test_find_nth_basic():
 def test_find_nth_edge_cases():
     assert find_nth("test", "-", 1) == -1
     assert find_nth("test-string", "-", 3) == -1
-    assert find_nth("-start-middle-end", "-", 3) == 12
+    assert find_nth("-start-middle-end", "-", 3) == 13
 
 def test_invert_dict_basic():
     test_dict = {"a": 1, "b": 2, "c": 3}
