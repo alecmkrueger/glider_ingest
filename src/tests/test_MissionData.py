@@ -62,11 +62,9 @@ def test_get_nc_filename():
     assert mission_data.nc_filename == "Mtest123_2023_199.nc"
 
 def test_get_output_nc_path(base_mission_data):
-    base_mission_data.mission_title = "TestMission"
-    base_mission_data.nc_filename = "test.nc"
     base_mission_data.get_output_nc_path()
-    assert base_mission_data.output_nc_path.parent.name == "TestMission"
-    assert base_mission_data.output_nc_path.name == "test.nc"
+    assert base_mission_data.output_nc_path.parent.name == "Mission test123"
+    assert base_mission_data.output_nc_path.name == "Mtest123_2023_541.nc"
 
 def test_custom_output_nc_path():
     mission_data = MissionData(
@@ -87,7 +85,7 @@ def test_wmo_id_mapping(base_mission_data):
     assert base_mission_data.wmo_id == "4801938"
 
 def test_get_files_validation(base_mission_data):
-    with pytest.raises(ValueError, match="Invaid path for files"):
+    with pytest.raises(ValueError, match="Path not found"):
         base_mission_data.get_files(Path("nonexistent/path"), "ebd")
 
 def test_mission_year_extraction(base_mission_data):
