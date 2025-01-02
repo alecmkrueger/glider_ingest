@@ -1,11 +1,9 @@
 import pytest
-import pandas as pd
-import xarray as xr
 from pathlib import Path
 import datetime
 
 from glider_ingest.MissionData import MissionData
-from glider_ingest.utils import find_nth, invert_dict
+from glider_ingest.utils import invert_dict
 
 @pytest.fixture
 def base_mission_data():
