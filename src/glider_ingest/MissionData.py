@@ -109,8 +109,11 @@ class MissionData:
             output_nc_loc = self.working_dir.joinpath(self.mission_title)
             output_nc_loc.mkdir(exist_ok=True,parents=True)
             self.output_nc_path = output_nc_loc.joinpath(self.nc_filename)
+        # If self.output_nc_path is a string
+        if isinstance(self.output_nc_path,str):
+            self.output_nc_path = Path(self.output_nc_path)
         # Ensure self.output_nc_path is a pathlib.Path object
-        elif isinstance(self.output_nc_path,Path):
+        if isinstance(self.output_nc_path,Path):
             # If the provided output_nc_path does not specify the filename
             if not self.output_nc_path.is_file():
                 self.output_nc_path.joinpath(self.nc_filename)
