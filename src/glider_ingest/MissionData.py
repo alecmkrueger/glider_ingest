@@ -126,13 +126,13 @@ class MissionData:
                 files = list(files_loc.rglob(f'*.{extension}'))
                 files = [str(file) for file in files]
                 if len(files) ==0 :
-                    raise ValueError(f'No Files found at {files_loc}')
+                    raise ValueError(f'No Files found at {files_loc.resolve()}')
             except ValueError:
                 files = list(files_loc.rglob(f'*.{extension.upper()}'))
                 files = [str(file) for file in files]
                 if len(files) ==0 :
-                    raise ValueError(f'No Files found at {files_loc}')
+                    raise ValueError(f'No Files found at {files_loc.resolve()}')
             return files
         else: 
-            raise ValueError(f'Invaid path for files: {files_loc}')
+            raise ValueError(f'Path not found: {files_loc.resolve()}')
         
