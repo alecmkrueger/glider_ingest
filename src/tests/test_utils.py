@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 import datetime
-from pathlib import Path
 
 from glider_ingest.utils import (
     print_time, 
