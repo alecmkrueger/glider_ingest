@@ -68,6 +68,7 @@ def test_add_flight_attrs(flight_processor):
     assert 'axis' in flight_processor.mission_data.ds_fli.m_longitude.attrs
     assert 'update_time' in flight_processor.mission_data.ds_fli.m_water_depth.attrs
 
+@pytest.mark.slow
 def test_process_flight_data_workflow(flight_processor, sample_flight_df):
     flight_processor.mission_data.df_fli = sample_flight_df
     flight_processor.process_flight_data()
