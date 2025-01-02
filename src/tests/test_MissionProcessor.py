@@ -27,8 +27,8 @@ def mission_processor(mission_data):
 
 @pytest.fixture
 def sample_mission_dataset():
-    times = pd.date_range('2023-01-01', periods=24, freq='H')
-    m_times = pd.date_range('2023-01-01', periods=24, freq='H')
+    times = pd.date_range('2023-01-01', periods=24, freq='h')
+    m_times = pd.date_range('2023-01-01', periods=24, freq='h')
     
     return xr.Dataset({
         'time': times,

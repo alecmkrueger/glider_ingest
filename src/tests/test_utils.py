@@ -42,7 +42,7 @@ def test_invert_dict_with_duplicates():
 
 @pytest.fixture
 def sample_dataset():
-    times = pd.date_range('2023-01-01', periods=24, freq='H')
+    times = pd.date_range('2023-01-01', periods=24, freq='h')
     return xr.Dataset({
         'time': times,
         'pressure': ('time', np.linspace(0, 100, 24)),

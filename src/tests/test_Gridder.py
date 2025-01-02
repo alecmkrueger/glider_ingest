@@ -9,7 +9,7 @@ from glider_ingest.Gridder import Gridder
 
 @pytest.fixture
 def sample_mission_dataset():
-    times = pd.date_range('2023-01-01', periods=24, freq='H')
+    times = pd.date_range('2023-01-01', periods=24, freq='h')
     pressures = np.linspace(0, 100, 50)
     temperatures = 20 + np.random.rand(len(times), len(pressures)) * 5
     salinities = 35 + np.random.rand(len(times), len(pressures))
