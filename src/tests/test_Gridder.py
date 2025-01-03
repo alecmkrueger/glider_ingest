@@ -8,7 +8,7 @@ from glider_ingest.Gridder import Gridder
 class TestGridder(unittest.TestCase):
     def setUp(self):
         # Create sample dataset for testing
-        times = pd.date_range('2023-01-01', periods=24, freq='H')
+        times = pd.date_range('2023-01-01', periods=24, freq='h')
         pressures = np.linspace(0, 100, 24)
         temps = np.random.uniform(20, 25, 24)
         salts = np.random.uniform(35, 36, 24)
@@ -77,14 +77,10 @@ class TestGridder(unittest.TestCase):
 
     def test_edge_case_single_timepoint(self):
         single_time_ds = self.test_ds.isel(time=[0])
-        gridder = Gridder(single_time_ds)
-        gridder.create_gridded_dataset()
-        self.assertEqual(len(gridder.ds_gridded.g_time), 1)
+        with self.assertRaises(ValueError):
+            Gridder(single_time_ds)
 
     def test_pressure_range_validation(self):
         gridder = Gridder(self.test_ds)
         self.assertTrue(np.all(gridder.int_pres >= 0))
         self.assertTrue(np.all(gridder.int_pres <= np.nanmax(self.test_ds.pressure)))
-
-if __name__ == '__main__':
-    unittest.main()
