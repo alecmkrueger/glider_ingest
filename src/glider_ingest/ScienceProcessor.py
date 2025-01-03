@@ -48,8 +48,9 @@ class ScienceProcessor:
         self.mission_data.df_sci['sci_m_present_time'] = pd.to_datetime(self.mission_data.df_sci['sci_m_present_time'], unit='s', errors='coerce')
         self.mission_data.df_sci = self.mission_data.df_sci.dropna()
 
-        # Remove any data with erroneous dates
-        self.mission_data.df_sci = self.mission_data.df_sci.loc[(self.mission_data.df_sci['sci_m_present_time'] > self.mission_data.mission_start_date) & (self.mission_data.df_sci['sci_m_present_time'] < self.mission_data.mission_end_date)]
+        # Remove data with erroneous dates
+        vaild_dates_mask = (self.mission_data.df_sci['sci_m_present_time'] >= self.mission_data.mission_start_date) & (self.mission_data.df_sci['sci_m_present_time'] <= self.mission_data.mission_end_date)
+        self.mission_data.df_sci = self.mission_data.df_sci.loc[vaild_dates_mask]
 
         # Convert pressure from db to dbar
         self.mission_data.df_sci['sci_water_pressure'] = self.mission_data.df_sci['sci_water_pressure'] * 10
