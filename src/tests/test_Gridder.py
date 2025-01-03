@@ -2,7 +2,6 @@ import unittest
 import numpy as np
 import pandas as pd
 import xarray as xr
-from datetime import datetime, timedelta
 from glider_ingest.Gridder import Gridder
 
 class TestGridder(unittest.TestCase):
