@@ -45,11 +45,19 @@ class Gridder:
         self.variable_names = list(self.ds.data_vars.keys())
         # Get all of the time values in the dataset
         self.time = self.ds.time.values
+        if len(self.time) <= 1:
+            raise ValueError('Not enough time values to grid')
         # Get all of the pressure values in the dataset
         self.pres = self.ds.pressure.values
+        if len(self.pres) <= 1:
+            raise ValueError('Not enough pressure values to grid')
         # Get all of the lat and lon values in the dataset
-        self.lon = np.nanmean(self.ds_mission.longitude)
-        self.lat = np.nanmean(self.ds_mission.latitude[np.where(self.ds_mission.latitude.values<29.5)].values)
+        self.lon = np.nanmean(self.ds_mission.longitude.values)
+        if len(self.lon) <= 1:
+            raise ValueError('Not enough longitude values to grid')
+        self.lat = np.nanmean(self.ds_mission.latitude.values)
+        if len(self.lat) <= 1:
+            raise ValueError('Not enough latitude values to grid')
 
         self.initalize_grid()
     
