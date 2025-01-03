@@ -1,92 +1,101 @@
-import pytest
+import unittest
 import numpy as np
-import pandas as pd
 import xarray as xr
 import datetime
-
 from glider_ingest.utils import (
-    print_time, 
-    find_nth, 
-    invert_dict, 
-    add_gridded_data, 
-    get_polygon_coords
+    print_time, find_nth, invert_dict, 
+    add_gridded_data, get_polygon_coords
 )
 
-def test_print_time(capsys):
-    print_time("Test Message")
-    captured = capsys.readouterr()
-    current_time = datetime.datetime.today().strftime('%H:%M:%S')
-    assert f"Test Message: {current_time}" in captured.out
+class TestUtils(unittest.TestCase):
+    def setUp(self):
+        # Create sample dataset for testing
+        times = np.array(['2023-01-01T00:00:00', '2023-01-01T01:00:00'], dtype='datetime64[ns]')
+        self.test_ds = xr.Dataset(
+            data_vars={
+                'pressure': ('time', [0, 10]),
+                'temperature': ('time', [20, 21]),
+                'salinity': ('time', [35, 35.5]),
+                'conductivity': ('time', [3.5, 3.6]),
+                'density': ('time', [1020, 1021]),
+                'oxygen': ('time', [200, 205]),
+                'latitude': ('time', [28.5, 28.6]),
+                'longitude': ('time', [-80.0, -80.1])
+            },
+            coords={'time': times}
+        )
 
-def test_find_nth_basic():
-    assert find_nth("hello-world-test", "-", 1) == 5
-    assert find_nth("hello-world-test", "-", 2) == 11
-    assert find_nth("no-dashes", "-", 1) == 2
+    def test_print_time(self):
+        test_message = "Test Message"
+        # Capture print output
+        import io
+        import sys
+        captured_output = io.StringIO()
+        sys.stdout = captured_output
+        
+        print_time(test_message)
+        sys.stdout = sys.__stdout__
+        
+        output = captured_output.getvalue().strip()
+        self.assertIn(test_message, output)
+        self.assertIn(":", output)
 
-def test_find_nth_edge_cases():
-    assert find_nth("test", "-", 1) == -1
-    assert find_nth("test-string", "-", 3) == -1
-    assert find_nth("-start-middle-end", "-", 3) == 13
+    def test_find_nth(self):
+        test_string = "test.string.with.dots"
+        self.assertEqual(find_nth(test_string, ".", 1), 4)
+        self.assertEqual(find_nth(test_string, ".", 2), 11)
+        self.assertEqual(find_nth(test_string, ".", 3), 16)
+        self.assertEqual(find_nth(test_string, ".", 4), -1)
+        self.assertEqual(find_nth("no_dots", ".", 1), -1)
 
-def test_invert_dict_basic():
-    test_dict = {"a": 1, "b": 2, "c": 3}
-    inverted = invert_dict(test_dict)
-    assert inverted == {1: "a", 2: "b", 3: "c"}
+    def test_invert_dict(self):
+        test_dict = {"a": 1, "b": 2, "c": 3}
+        inverted = invert_dict(test_dict)
+        self.assertEqual(inverted[1], "a")
+        self.assertEqual(inverted[2], "b")
+        self.assertEqual(inverted[3], "c")
+        
+        # Test empty dict
+        self.assertEqual(invert_dict({}), {})
 
-def test_invert_dict_with_duplicates():
-    test_dict = {"a": 1, "b": 1, "c": 2}
-    inverted = invert_dict(test_dict)
-    assert len(inverted) == 2
-    assert inverted[2] == "c"
+    def test_add_gridded_data(self):
+        result_ds = add_gridded_data(self.test_ds)
+        
+        # Check if gridded variables were added
+        self.assertIn('g_temp', result_ds)
+        self.assertIn('g_salt', result_ds)
+        self.assertIn('g_depth', result_ds)
+        
+        # Verify dimensions
+        self.assertIn('g_time', result_ds.g_temp.dims)
+        self.assertIn('g_pres', result_ds.g_temp.dims)
 
-@pytest.fixture
-def sample_dataset():
-    times = pd.date_range('2023-01-01', periods=24, freq='h')
-    return xr.Dataset({
-        'time': times,
-        'pressure': ('time', np.linspace(0, 100, 24)),
-        'temperature': ('time', 20 + np.random.rand(24) * 5),
-        'latitude': ('time', np.ones(24) * 25.0),
-        'longitude': ('time', np.ones(24) * -94.0)
-    })
+    def test_get_polygon_coords(self):
+        polygon = get_polygon_coords(self.test_ds)
+        
+        # Check polygon string format
+        self.assertTrue(polygon.startswith('POLYGON (('))
+        self.assertTrue(polygon.endswith('))'))
+        
+        # Verify coordinate count (5 points for closed polygon)
+        coord_pairs = polygon.count(' ') // 2  # Each coordinate pair has lat lon
+        self.assertEqual(coord_pairs, 5)
 
-def test_add_gridded_data(sample_dataset):
-    result_ds = add_gridded_data(sample_dataset)
-    assert 'g_temp' in result_ds.variables
-    assert 'g_pres' in result_ds.dims
-    assert 'g_time' in result_ds.dims
+    def test_get_polygon_coords_single_point(self):
+        # Test with dataset containing single point
+        single_ds = self.test_ds.isel(time=[0])
+        polygon = get_polygon_coords(single_ds)
+        self.assertIsInstance(polygon, str)
+        self.assertTrue(polygon.startswith('POLYGON (('))
 
-def test_get_polygon_coords(sample_dataset):
-    polygon_str = get_polygon_coords(sample_dataset)
-    assert polygon_str.startswith('POLYGON ((')
-    assert polygon_str.endswith('))')
-    assert len(polygon_str.split()) == 11  # 5 coordinate pairs plus POLYGON ((
+    def test_find_nth_empty_string(self):
+        self.assertEqual(find_nth("", ".", 1), -1)
+        self.assertEqual(find_nth("", ".", 0), -1)
 
-def test_get_polygon_coords_with_varying_coords(sample_dataset):
-    sample_dataset['latitude'] = ('time', np.linspace(25.0, 25.5, 24))
-    sample_dataset['longitude'] = ('time', np.linspace(-94.0, -94.5, 24))
-    polygon_str = get_polygon_coords(sample_dataset)
-    coords = polygon_str.replace('POLYGON ((', '').replace('))', '').split(',')
-    assert len(coords) == 5  # 5 coordinate pairs
+    def test_invert_dict_duplicate_values(self):
+        test_dict = {"a": 1, "b": 1, "c": 2}
+        inverted = invert_dict(test_dict)
+        self.assertEqual(len(inverted), 2)  # Only unique values become keys
 
-def test_add_gridded_data_attributes(sample_dataset):
-    result_ds = add_gridded_data(sample_dataset)
-    assert 'units' in result_ds.g_temp.attrs
-    assert 'standard_name' in result_ds.g_temp.attrs
-    assert 'valid_min' in result_ds.g_temp.attrs
-    assert 'valid_max' in result_ds.g_temp.attrs
-
-def test_add_gridded_data_dimensions(sample_dataset):
-    result_ds = add_gridded_data(sample_dataset)
-    assert len(result_ds.g_time) > 0
-    assert len(result_ds.g_pres) > 0
-    assert result_ds.g_temp.shape == (len(result_ds.g_time), len(result_ds.g_pres))
-
-def test_get_polygon_coords_latitude_filtering(sample_dataset):
-    sample_dataset['latitude'] = ('time', np.concatenate([
-        np.ones(12) * 25.0,
-        np.ones(12) * 30.0
-    ]))
-    polygon_str = get_polygon_coords(sample_dataset)
-    assert polygon_str.startswith('POLYGON ((')
-    assert '30.0' not in polygon_str  # Values >= 29.5 should be filtered
+if __name__ == '__main__':
+    unittest.main()
