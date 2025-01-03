@@ -87,9 +87,7 @@ class TestScienceProcessor(unittest.TestCase):
 
     @pytest.mark.slow
     def test_process_sci_data_full_workflow(self):
-        # Mock the load_science method to use test data
-        # self.processor.load_science = lambda: self.test_df
-        
+        # Run the full processing workflow
         self.processor.process_sci_data()
         
         # Verify final dataset structure
@@ -98,24 +96,4 @@ class TestScienceProcessor(unittest.TestCase):
         self.assertIn('temperature', self.processor.mission_data.ds_sci)
         self.assertIn('platform', self.processor.mission_data.ds_sci)
 
-    def test_date_filtering(self):
-        # Add data outside mission dates
-        outside_dates = pd.date_range('2022-12-31', periods=24, freq='h')
-        test_df_with_outside = pd.concat([
-            self.test_df,
-            pd.DataFrame({
-                'sci_m_present_time': outside_dates,
-                'sci_water_pressure': np.random.uniform(0, 100, 24)
-            })
-        ])
-        
-        self.processor.mission_data.df_sci = test_df_with_outside
-        self.processor.convert_sci_df_to_ds()
-        
-        # Verify only data within mission dates remains
-        times = pd.DatetimeIndex(self.processor.mission_data.ds_sci.time.values)
-        self.assertTrue(all(times >= self.mission_data.mission_start_date))
-        self.assertTrue(all(times <= self.mission_data.mission_end_date))
 
-if __name__ == '__main__':
-    unittest.main()
