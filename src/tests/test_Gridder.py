@@ -12,8 +12,8 @@ class TestGridder(unittest.TestCase):
         pressures = np.linspace(0, 100, 24)
         temps = np.random.uniform(20, 25, 24)
         salts = np.random.uniform(35, 36, 24)
-        lats = np.full(24, 28.5)
-        lons = np.full(24, -80.0)
+        lats = np.linspace(20, 29, 24)
+        lons = np.linspace(-98, -80, 24)
         
         self.test_ds = xr.Dataset(
             data_vars={
