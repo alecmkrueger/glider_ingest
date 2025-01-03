@@ -7,6 +7,7 @@ import pandas as pd
 import xarray as xr
 import gsw
 
+
 @define
 class Gridder:
     '''
@@ -45,21 +46,26 @@ class Gridder:
         self.variable_names = list(self.ds.data_vars.keys())
         # Get all of the time values in the dataset
         self.time = self.ds.time.values
-        if len(self.time) <= 1:
-            raise ValueError('Not enough time values to grid')
+        self.check_len(self.time,1)
         # Get all of the pressure values in the dataset
         self.pres = self.ds.pressure.values
-        if len(self.pres) <= 1:
-            raise ValueError('Not enough pressure values to grid')
+        self.check_len(self.pres,1)
         # Get all of the lat and lon values in the dataset
         self.lon = np.nanmean(self.ds_mission.longitude.values)
-        if len(self.lon) <= 1:
-            raise ValueError('Not enough longitude values to grid')
+        self.check_len(self.lon,1)
         self.lat = np.nanmean(self.ds_mission.latitude.values)
-        if len(self.lat) <= 1:
-            raise ValueError('Not enough latitude values to grid')
+        self.check_len(self.lat,1)
 
         self.initalize_grid()
+    
+    def check_len(self,values,expected_length):
+        '''Check if the length of a list is less than or equal to the expected length'''
+        if isinstance(values,np.float64):
+            values = [values]
+        else:
+            values = list(values)
+        if len(values) <= expected_length:
+            raise ValueError(f'Not enough values to grid {values}')
     
     def initalize_grid(self):
         '''
