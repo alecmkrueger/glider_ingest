@@ -109,9 +109,9 @@ class MissionData:
 
         # Try inverted lookup
         try:
-            self.glider_name = inverted_glider_ids[self.glider_name]
-            if self.glider_id is None:
-                self.glider_id = self.glider_ids[self.glider_name]
+            self.glider_id = inverted_glider_ids[self.glider_name]
+            if self.glider_name is None:
+                self.glider_name = self.glider_ids[self.glider_name]
             return
         except KeyError as e:
             raise ValueError(f'Could not find glider_id, please pass glider_id. Must be one of {list(self.glider_ids.keys())} ({e})')

@@ -67,6 +67,11 @@ class TestMissionData(unittest.TestCase):
         self.assertIsNone(full_filename)
         if file.exists():
             file.unlink()
+    
+    def test_parse_and_validate_glider_name_name_not_id(self):
+        self.mission_data._parse_and_validate_glider_name("unit_Reveille-2024-test")
+        self.assertEqual(self.mission_data.glider_name, "Reveille")
+        self.assertEqual(self.mission_data.glider_id, "307")
 
     def test_get_wmo_id(self):
         self.mission_data.glider_id = "307"
