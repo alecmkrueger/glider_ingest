@@ -130,36 +130,36 @@ class Gridder:
         'valid_max': 1040.0,
         'valid_min': 1015.0,
         'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        if 'bb' in self.variable_names:
-            self.ds_gridded['g_turb'].attrs = {'long_name': 'Gridded Turbidity',
-            'observation_type': 'calculated',
-            'source': 'turbidity from sci_flbbcd_bb_units',
-            'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
-            'standard_name': 'sea_water_turbidity',
-            'units': '1',
-            'valid_max': 1.0,
-            'valid_min': 0.0,
-            'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        if 'cdom' in self.variable_names:
-            self.ds_gridded['g_cdom'].attrs = {'long_name': 'Gridded CDOM',
-            'observation_type': 'calculated',
-            'source': 'cdom from sci_flbbcd_cdom_units',
-            'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
-            'standard_name': 'concentration_of_colored_dissolved_organic_matter_in_sea_water',
-            'units': 'ppb',
-            'valid_max': 50.0,
-            'valid_min': 0.0,
-            'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        if 'chlor' in self.variable_names:
-            self.ds_gridded['g_chlo'].attrs = {'long_name': 'Gridded Chlorophyll_a',
-            'observation_type': 'calculated',
-            'source': 'chlorophyll from sci_flbbcd_chlor_units',
-            'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
-            'standard_name': 'mass_concentration_of_chlorophyll_a_in_sea_water',
-            'units': '\u03BCg/L',
-            'valid_max': 10.0,
-            'valid_min': 0.0,
-            'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
+        # if 'turb' in self.variable_names:
+        #     self.ds_gridded['g_turb'].attrs = {'long_name': 'Gridded Turbidity',
+        #     'observation_type': 'calculated',
+        #     'source': 'turbidity from sci_flbbcd_bb_units',
+        #     'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
+        #     'standard_name': 'sea_water_turbidity',
+        #     'units': '1',
+        #     'valid_max': 1.0,
+        #     'valid_min': 0.0,
+        #     'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
+        # if 'cdom' in self.variable_names:
+        #     self.ds_gridded['g_cdom'].attrs = {'long_name': 'Gridded CDOM',
+        #     'observation_type': 'calculated',
+        #     'source': 'cdom from sci_flbbcd_cdom_units',
+        #     'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
+        #     'standard_name': 'concentration_of_colored_dissolved_organic_matter_in_sea_water',
+        #     'units': 'ppb',
+        #     'valid_max': 50.0,
+        #     'valid_min': 0.0,
+        #     'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
+        # if 'chlor' in self.variable_names:
+        #     self.ds_gridded['g_chlo'].attrs = {'long_name': 'Gridded Chlorophyll_a',
+        #     'observation_type': 'calculated',
+        #     'source': 'chlorophyll from sci_flbbcd_chlor_units',
+        #     'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
+        #     'standard_name': 'mass_concentration_of_chlorophyll_a_in_sea_water',
+        #     'units': '\u03BCg/L',
+        #     'valid_max': 10.0,
+        #     'valid_min': 0.0,
+        #     'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
         if 'oxygen' in self.variable_names:
             self.ds_gridded['g_oxy4'].attrs = {'long_name': 'Gridded Oxygen',
             'observation_type': 'calculated',
