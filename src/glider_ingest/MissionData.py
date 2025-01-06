@@ -60,15 +60,12 @@ class MissionData:
             path = base_path.joinpath(*parts)
             if path.exists():
                 return path
-                
             return base_path.joinpath(*parts[:-1], parts[-1].upper())
 
         self.fli_files_loc = set_path_with_case(self.memory_card_copy_loc, 'Flight_card', 'logs')
         self.fli_cache_loc = set_path_with_case(self.memory_card_copy_loc, 'Flight_card', 'state', 'cache')
         self.sci_files_loc = set_path_with_case(self.memory_card_copy_loc, 'Science_card', 'logs')
         self.sci_cache_loc = set_path_with_case(self.memory_card_copy_loc, 'Science_card', 'state', 'cache')
-
-
 
     def get_mission_date_range(self):
         if self.mission_end_date is None:
