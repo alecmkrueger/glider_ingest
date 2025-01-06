@@ -15,46 +15,20 @@ class TestMissionProcessor(unittest.TestCase):
         self.mission_data = MissionData(
             memory_card_copy_loc=memory_card_copy_loc,
             working_dir=working_dir,
-            mission_num="123",
-            glider_id='199'
+            mission_num="45",
+            glider_id='307'
         )
         self.mission_data.setup()
-        
-        # Create test time coordinates
-        self.time = pd.date_range("2023-01-01", periods=24, freq="h")
-        
-        # Create test datasets
-        self.test_sci_data = xr.Dataset(
-            {
-                "temperature": (["time"], np.linspace(20, 25, 24)),
-                "salinity": (["time"], np.linspace(35, 36, 24)),
-                "latitude": (["time"], np.linspace(28.5, 29.0, 24)),
-                "longitude": (["time"], np.linspace(-94.5, -94.0, 24)),
-                "depth": (["time"], np.linspace(0, 100, 24))
-            },
-            coords={"time": self.time, "m_time": self.time}
-        )
-        
-        self.test_fli_data = xr.Dataset(
-            {
-                "pitch": (["time"], np.linspace(-30, 30, 24)),
-                "roll": (["time"], np.linspace(-5, 5, 24))
-            },
-            coords={"time": self.time}
-        )
-        
-        self.mission_data.ds_sci = self.test_sci_data
-        self.mission_data.ds_fli = self.test_fli_data
         self.processor = MissionProcessor(mission_data=self.mission_data)
 
     def test_initialization(self):
         self.assertIsInstance(self.processor.mission_data, MissionData)
-        self.assertEqual(self.processor.mission_data.mission_num, "123")
-        self.assertEqual(self.processor.mission_data.glider_id, "199")
+        self.assertEqual(self.processor.mission_data.mission_num, "45")
+        self.assertEqual(self.processor.mission_data.glider_id, "307")
 
 
     def test_add_global_attrs_validation(self):
-        self.mission_data.ds_mission = self.test_sci_data
+        self.processor.generate_mission_dataset()
         self.processor.add_global_attrs()
         
         required_attrs = [
@@ -71,11 +45,10 @@ class TestMissionProcessor(unittest.TestCase):
             self.assertIn(attr, self.mission_data.ds_mission.attrs)
         
         self.assertEqual(self.mission_data.ds_mission.attrs["platform_type"], "Slocum Glider")
-        self.assertEqual(self.mission_data.ds_mission.attrs["wmo_id"], "unknown")
+        self.assertEqual(self.mission_data.ds_mission.attrs["wmo_id"], "4801938")
 
     def test_save_mission_dataset(self):
         # Setup test dataset
-        self.mission_data.ds_mission = self.test_sci_data
         self.mission_data.output_nc_path = self.test_dir / "test_output.nc"
         
         # Test save functionality
