@@ -12,7 +12,7 @@ class TestScienceProcessor(unittest.TestCase):
     def setUp(self):
         # Create mock MissionData instance
         self.mission_data = MissionData(
-            memory_card_copy_loc=Path("test_data/memory_card"),
+            memory_card_copy_loc=Path("test_data/memory_card_copy"),
             working_dir=Path("test_data/working"),
             glider_id="541",
             mission_num="48",
