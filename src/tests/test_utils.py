@@ -1,7 +1,6 @@
 import unittest
 import numpy as np
 import xarray as xr
-import datetime
 from glider_ingest.utils import (
     print_time, find_nth, invert_dict, 
     add_gridded_data, get_polygon_coords
@@ -97,5 +96,3 @@ class TestUtils(unittest.TestCase):
         inverted = invert_dict(test_dict)
         self.assertEqual(len(inverted), 2)  # Only unique values become keys
 
-if __name__ == '__main__':
-    unittest.main()

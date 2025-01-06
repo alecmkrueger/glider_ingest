@@ -16,13 +16,6 @@ class TestMissionData(unittest.TestCase):
             mission_num="45"
         )
 
-    def create_test_sci_file(self):
-        sci_path = Path(self.test_dir) / "Science_card/logs"
-        sci_path.mkdir(parents=True)
-        test_file = sci_path / "test.ebd"
-        test_file.write_text("full_filename: unit_307-2024-test")
-        return sci_path
-
     def test_initialization(self):
         self.assertIsInstance(self.mission_data.memory_card_copy_loc, Path)
         self.assertIsInstance(self.mission_data.working_dir, Path)
@@ -72,7 +65,11 @@ class TestMissionData(unittest.TestCase):
         self.mission_data._parse_and_validate_glider_name("unit_Reveille-2024-test")
         self.assertEqual(self.mission_data.glider_name, "Reveille")
         self.assertEqual(self.mission_data.glider_id, "307")
-
+        
+    def test_parse_and_validate_glider_name_not_found(self):
+        with self.assertRaises(ValueError):
+            self.mission_data._parse_and_validate_glider_name("unit_12-2024-test")
+            
     def test_get_wmo_id(self):
         self.mission_data.glider_id = "307"
         self.mission_data.get_wmo_id()
@@ -109,10 +106,15 @@ class TestMissionData(unittest.TestCase):
             self.mission_data.get_files(empty_dir, "ebd")
 
     def test_get_output_nc_path(self):
-        # self.mission_data.output_nc_path = Path(self.test_dir).joinpath("output")
         self.mission_data.nc_filename = "test.nc"
         self.mission_data.mission_title = "Test Mission"
         self.mission_data.get_output_nc_path()
         self.assertEqual(self.mission_data.output_nc_path.name, "test.nc")
         self.assertIn("Test Mission", str(self.mission_data.output_nc_path))
 
+    def test_get_output_nc_path_path_is_str(self):
+        self.mission_data.output_nc_path = str(Path(self.test_dir).joinpath("Test Mission","test.nc").resolve())
+        self.mission_data.setup()
+        self.mission_data.get_output_nc_path()
+        self.assertEqual(self.mission_data.output_nc_path.name, "test.nc")
+        self.assertIn("Test Mission", str(self.mission_data.output_nc_path))
