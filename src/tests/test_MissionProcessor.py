@@ -9,12 +9,14 @@ from glider_ingest.MissionData import MissionData
 
 class TestMissionProcessor(unittest.TestCase):
     def setUp(self):
-        self.test_dir = Path("test_data")
+        self.test_dir = Path(__file__).parent.joinpath("test_data")
+        memory_card_copy_loc=Path(self.test_dir).joinpath("memory_card_copy")
+        working_dir=Path(self.test_dir).joinpath("working")
         self.mission_data = MissionData(
-            memory_card_copy_loc=self.test_dir,
-            working_dir=self.test_dir,
+            memory_card_copy_loc=memory_card_copy_loc,
+            working_dir=working_dir,
             mission_num="123",
-            glider_id="199"
+            glider_id='199'
         )
         
         # Create mock dataset
@@ -42,6 +44,7 @@ class TestMissionProcessor(unittest.TestCase):
 
     def test_add_global_attrs(self):
         self.mission_data.ds_mission = self.mock_dataset
+        self.mission_data.setup()
         self.processor.add_global_attrs()
         
         required_attrs = [
@@ -113,3 +116,5 @@ class TestMissionProcessor(unittest.TestCase):
         # Clean up any test files if needed
         pass
 
+if __name__ == '__main__':
+    unittest.main()
