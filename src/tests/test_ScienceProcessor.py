@@ -59,6 +59,13 @@ class TestScienceProcessor(unittest.TestCase):
         self.assertIn('sci_flbbcd_bb_units', result)
         self.assertNotIn('sci_oxy4_oxygen', result)
 
+    def test_get_sci_vars_no_oxygen_and_optical(self):
+        variables = ['sci_water_pressure']
+        result = self.processor.get_sci_vars(variables)
+        self.assertIn('sci_water_pressure', result)
+        self.assertNotIn('sci_flbbcd_bb_units', result)
+        self.assertNotIn('sci_oxy4_oxygen', result)
+
     def test_convert_sci_df_to_ds(self):
         self.processor.convert_sci_df_to_ds()
         self.assertIsInstance(self.processor.mission_data.ds_sci, xr.Dataset)
