@@ -14,9 +14,7 @@ from glider_ingest.utils import add_gridded_data,get_polygon_coords
 @define
 class MissionProcessor:
 
-    mission_data:MissionData
-
-    
+    mission_data:MissionData    
 
     def add_global_attrs(self) -> xr.Dataset:
         '''Add attributes to the mission dataset'''
