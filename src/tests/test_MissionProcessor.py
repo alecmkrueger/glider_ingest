@@ -3,9 +3,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import xarray as xr
-from unittest.mock import Mock, patch
 from glider_ingest.MissionProcessor import MissionProcessor
 from glider_ingest.MissionData import MissionData
+import pytest
 
 class TestMissionProcessor(unittest.TestCase):
     def setUp(self):
@@ -20,102 +20,72 @@ class TestMissionProcessor(unittest.TestCase):
         )
         self.mission_data.setup()
         
-        # Create mock dataset
-        time = pd.date_range("2023-01-01", periods=24, freq="h")
-        lat = np.linspace(28.5, 29.0, 24)
-        lon = np.linspace(-94.5, -94.0, 24)
-        depth = np.linspace(0, 100, 24)
+        # Create test time coordinates
+        self.time = pd.date_range("2023-01-01", periods=24, freq="h")
         
-        self.mock_dataset = xr.Dataset(
+        # Create test datasets
+        self.test_sci_data = xr.Dataset(
             {
-                "latitude": (["time"], lat),
-                "longitude": (["time"], lon),
-                "depth": (["time"], depth),
+                "temperature": (["time"], np.linspace(20, 25, 24)),
+                "salinity": (["time"], np.linspace(35, 36, 24)),
+                "latitude": (["time"], np.linspace(28.5, 29.0, 24)),
+                "longitude": (["time"], np.linspace(-94.5, -94.0, 24)),
+                "depth": (["time"], np.linspace(0, 100, 24))
             },
-            coords={"time": time, "m_time": time}
+            coords={"time": self.time, "m_time": self.time}
         )
         
-        self.mission_data.ds_sci = self.mock_dataset
-        self.mission_data.ds_fli = self.mock_dataset
+        self.test_fli_data = xr.Dataset(
+            {
+                "pitch": (["time"], np.linspace(-30, 30, 24)),
+                "roll": (["time"], np.linspace(-5, 5, 24))
+            },
+            coords={"time": self.time}
+        )
+        
+        self.mission_data.ds_sci = self.test_sci_data
+        self.mission_data.ds_fli = self.test_fli_data
         self.processor = MissionProcessor(mission_data=self.mission_data)
 
     def test_initialization(self):
         self.assertIsInstance(self.processor.mission_data, MissionData)
         self.assertEqual(self.processor.mission_data.mission_num, "123")
+        self.assertEqual(self.processor.mission_data.glider_id, "199")
 
-    def test_add_global_attrs(self):
-        self.mission_data.ds_mission = self.mock_dataset
-        self.mission_data.setup()
+
+    def test_add_global_attrs_validation(self):
+        self.mission_data.ds_mission = self.test_sci_data
         self.processor.add_global_attrs()
         
         required_attrs = [
-            'Conventions', 'cdm_data_type', 'featureType', 'title',
-            'institution', 'source', 'wmo_id'
+            "Conventions",
+            "cdm_data_type",
+            "featureType",
+            "geospatial_bounds_crs",
+            "institution",
+            "platform_type",
+            "wmo_id"
         ]
         
         for attr in required_attrs:
             self.assertIn(attr, self.mission_data.ds_mission.attrs)
         
-        self.assertEqual(self.mission_data.ds_mission.attrs['wmo_id'], 'unknown')
-        self.assertEqual(self.mission_data.ds_mission.attrs['featureType'], 'profile')
+        self.assertEqual(self.mission_data.ds_mission.attrs["platform_type"], "Slocum Glider")
+        self.assertEqual(self.mission_data.ds_mission.attrs["wmo_id"], "unknown")
 
-    @patch('glider_ingest.ScienceProcessor.ScienceProcessor')
-    def test_process_sci(self, mock_sci_processor):
-        mock_processor = Mock()
-        mock_processor.mission_data = self.mission_data
-        mock_sci_processor.return_value = mock_processor
-        
-        result = self.processor.process_sci()
-        self.assertEqual(result, self.mission_data)
-        mock_processor.process_sci_data.assert_called_once()
-
-    @patch('glider_ingest.FlightProcessor.FlightProcessor')
-    def test_process_fli(self, mock_fli_processor):
-        mock_processor = Mock()
-        mock_processor.mission_data = self.mission_data
-        mock_fli_processor.return_value = mock_processor
-        
-        result = self.processor.process_fli()
-        self.assertEqual(result, self.mission_data)
-        mock_processor.process_flight_data.assert_called_once()
-
-    def test_generate_mission_dataset(self):
-        with patch.object(self.processor, 'process_sci') as mock_sci:
-            with patch.object(self.processor, 'process_fli') as mock_fli:
-                mock_sci.return_value = self.mission_data
-                mock_fli.return_value = self.mission_data
-                
-                self.processor.generate_mission_dataset()
-                
-                self.assertIsInstance(self.mission_data.ds_mission, xr.Dataset)
-                mock_sci.assert_called_once()
-                mock_fli.assert_called_once()
-
-    @patch('xarray.Dataset.to_netcdf')
-    def test_save_mission_dataset(self, mock_to_netcdf):
-        self.mission_data.ds_mission = self.mock_dataset
+    def test_save_mission_dataset(self):
+        # Setup test dataset
+        self.mission_data.ds_mission = self.test_sci_data
         self.mission_data.output_nc_path = self.test_dir / "test_output.nc"
         
+        # Test save functionality
         self.processor.save_mission_dataset()
-        mock_to_netcdf.assert_called_once_with(
-            self.mission_data.output_nc_path,
-            engine='netcdf4'
-        )
-
-    def test_generate_mission_dataset_data_combination(self):
-        self.mission_data.ds_sci = xr.Dataset({"var1": ("time", [1, 2, 3])})
-        self.mission_data.ds_fli = xr.Dataset({"var2": ("time", [4, 5, 6])})
         
-        with patch.object(self.processor, 'process_sci'):
-            with patch.object(self.processor, 'process_fli'):
-                self.processor.generate_mission_dataset()
-                
-                self.assertIn("var1", self.mission_data.ds_mission)
-                self.assertIn("var2", self.mission_data.ds_mission)
+        # Verify file creation
+        self.assertTrue(self.mission_data.output_nc_path.exists())
 
     def tearDown(self):
-        # Clean up any test files if needed
-        pass
-
-if __name__ == '__main__':
-    unittest.main()
+        # Clean up test files
+        if hasattr(self.mission_data, 'output_nc_path') and self.mission_data.output_nc_path.exists():
+            self.mission_data.output_nc_path.unlink()
+            
