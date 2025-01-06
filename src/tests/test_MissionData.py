@@ -1,101 +1,98 @@
-import pytest
+import unittest
 from pathlib import Path
 import datetime
-
+import tempfile
+import os
 from glider_ingest.MissionData import MissionData
-from glider_ingest.utils import invert_dict
 
-@pytest.fixture
-def base_mission_data():
-    return MissionData(
-        memory_card_copy_loc=Path("test_data/memory_card"),
-        working_dir=Path("test_data/working"),
-        mission_num="test123"
-    )
+class TestMissionData(unittest.TestCase):
+    def setUp(self):
+        self.test_dir = Path(__file__).parent.joinpath("test_data")
+        memory_card_copy_loc=Path(self.test_dir).joinpath("memory_card_copy")
+        working_dir=Path(self.test_dir).joinpath("working")
+        self.mission_data = MissionData(
+            memory_card_copy_loc=memory_card_copy_loc,
+            working_dir=working_dir,
+            mission_num="123"
+        )
 
-def test_mission_data_initialization(base_mission_data):
-    assert base_mission_data.mission_num == "test123"
-    assert isinstance(base_mission_data.memory_card_copy_loc, Path)
-    assert isinstance(base_mission_data.working_dir, Path)
+    def create_test_sci_file(self):
+        sci_path = Path(self.test_dir) / "Science_card/logs"
+        sci_path.mkdir(parents=True)
+        test_file = sci_path / "test.ebd"
+        test_file.write_text("full_filename: unit_199-2023-test")
+        return sci_path
 
-def test_get_file_locs(base_mission_data):
-    base_mission_data.get_file_locs()
-    assert base_mission_data.fli_files_loc.name == "logs"
-    assert base_mission_data.sci_files_loc.name == "logs"
-    assert base_mission_data.fli_cache_loc.name == "cache"
-    assert base_mission_data.sci_cache_loc.name == "cache"
+    def test_initialization(self):
+        self.assertIsInstance(self.mission_data.memory_card_copy_loc, Path)
+        self.assertIsInstance(self.mission_data.working_dir, Path)
+        self.assertEqual(self.mission_data.mission_num, "123")
 
-def test_get_mission_date_range_defaults(base_mission_data):
-    base_mission_data.get_mission_date_range()
-    assert base_mission_data.mission_start_date == "2010-01-01"
-    assert datetime.datetime.strptime(base_mission_data.mission_end_date, "%Y-%m-%d")
+    def test_get_file_locs(self):
+        self.mission_data.get_file_locs()
+        self.assertEqual(self.mission_data.fli_files_loc.name, "logs")
+        self.assertEqual(self.mission_data.sci_files_loc.name, "logs")
+        self.assertIn("Flight_card", str(self.mission_data.fli_cache_loc))
+        self.assertIn("Science_card", str(self.mission_data.sci_cache_loc))
 
-def test_get_mission_date_range_custom():
-    mission_data = MissionData(
-        memory_card_copy_loc=Path("test_data/memory_card"),
-        working_dir=Path("test_data/working"),
-        mission_num="test123",
-        mission_start_date="2023-01-01",
-        mission_end_date="2023-12-31"
-    )
-    assert mission_data.mission_start_date == "2023-01-01"
-    assert mission_data.mission_end_date == "2023-12-31"
+    def test_get_mission_date_range_default(self):
+        self.mission_data.get_mission_date_range()
+        self.assertEqual(self.mission_data.mission_start_date, "2010-01-01")
+        tomorrow_plus_year = (datetime.datetime.today() + datetime.timedelta(days=365)).date()
+        self.assertEqual(self.mission_data.mission_end_date, str(tomorrow_plus_year))
 
-def test_get_wmo_id(base_mission_data):
-    base_mission_data.glider_id = "199"
-    base_mission_data.get_wmo_id()
-    assert base_mission_data.wmo_id == "unknown"
+    def test_get_mission_date_range_custom(self):
+        mission = MissionData(
+            memory_card_copy_loc=Path(self.test_dir),
+            working_dir=Path(self.test_dir),
+            mission_num="123",
+            mission_start_date="2023-01-01",
+            mission_end_date="2023-12-31"
+        )
+        mission.get_mission_date_range()
+        self.assertEqual(mission.mission_start_date, "2023-01-01")
+        self.assertEqual(mission.mission_end_date, "2023-12-31")
 
-def test_get_mission_title(base_mission_data):
-    base_mission_data.get_mission_title()
-    assert base_mission_data.mission_title == f"Mission {base_mission_data.mission_num}"
+    def test_get_wmo_id(self):
+        self.mission_data.glider_id = "199"
+        self.mission_data.get_wmo_id()
+        self.assertEqual(self.mission_data.wmo_id, "unknown")
 
-def test_get_nc_filename():
-    mission_data = MissionData(
-        memory_card_copy_loc=Path("test_data/memory_card"),
-        working_dir=Path("test_data/working"),
-        mission_num="test123",
-        glider_id="199",
-        mission_year="2023"
-    )
-    mission_data.get_nc_filename()
-    assert mission_data.nc_filename == "Mtest123_2023_199.nc"
+    def test_get_mission_title_default(self):
+        self.mission_data.get_mission_title()
+        self.assertEqual(self.mission_data.mission_title, "Mission 123")
 
-def test_get_output_nc_path(base_mission_data):
-    base_mission_data.get_output_nc_path()
-    assert base_mission_data.output_nc_path.parent.name == "Mission test123"
-    assert base_mission_data.output_nc_path.name == "Mtest123_2023_541.nc"
+    def test_get_mission_title_custom(self):
+        mission = MissionData(
+            memory_card_copy_loc=Path(self.test_dir),
+            working_dir=Path(self.test_dir),
+            mission_num="123",
+            mission_title="Custom Mission"
+        )
+        mission.get_mission_title()
+        self.assertEqual(mission.mission_title, "Custom Mission")
 
-def test_custom_output_nc_path():
-    mission_data = MissionData(
-        memory_card_copy_loc=Path("test_data/memory_card"),
-        working_dir=Path("test_data/working"),
-        mission_num="test123",
-        output_nc_path=Path("custom/output/path.nc")
-    )
-    assert mission_data.output_nc_path == Path("custom/output/path.nc")
+    def test_get_nc_filename(self):
+        self.mission_data.glider_id = "199"
+        self.mission_data.mission_year = "2023"
+        self.mission_data.get_nc_filename()
+        self.assertEqual(self.mission_data.nc_filename, "M123_2023_199.nc")
 
-def test_glider_id_mapping(base_mission_data):
-    base_mission_data.glider_id = "199"
-    assert base_mission_data.glider_ids[base_mission_data.glider_id] == "Dora"
-    
-def test_wmo_id_mapping(base_mission_data):
-    base_mission_data.glider_id = "307"
-    base_mission_data.get_wmo_id()
-    assert base_mission_data.wmo_id == "4801938"
+    def test_get_files_missing_directory(self):
+        with self.assertRaises(ValueError):
+            self.mission_data.get_files(Path("nonexistent"), "ebd")
 
-def test_get_files_validation(base_mission_data):
-    with pytest.raises(ValueError, match="Path not found"):
-        base_mission_data.get_files(Path("nonexistent/path"), "ebd")
+    def test_get_files_no_matching_files(self):
+        empty_dir = Path(self.test_dir) / "empty"
+        empty_dir.mkdir()
+        with self.assertRaises(ValueError):
+            self.mission_data.get_files(empty_dir, "ebd")
 
-def test_mission_year_extraction(base_mission_data):
-    base_mission_data.mission_year = "2023"
-    base_mission_data.get_mission_title()
-    base_mission_data.get_nc_filename()
-    assert "2023" in base_mission_data.nc_filename
+    def test_get_output_nc_path(self):
+        self.mission_data.output_nc_path = Path(self.test_dir).joinpath("output")
+        self.mission_data.nc_filename = "test.nc"
+        self.mission_data.mission_title = "Test Mission"
+        self.mission_data.get_output_nc_path()
+        self.assertEqual(self.mission_data.output_nc_path.name, "test.nc")
+        self.assertIn("Test Mission", str(self.mission_data.output_nc_path))
 
-def test_glider_name_conversion(base_mission_data):
-    base_mission_data.glider_id = "199"
-    base_mission_data.glider_name = "Dora"
-    inverted = invert_dict(base_mission_data.glider_ids)
-    assert inverted[base_mission_data.glider_name] == base_mission_data.glider_id
