@@ -16,6 +16,9 @@ class MissionProcessor:
 
     mission_data:MissionData
 
+    def attrs_post_init(self):
+        self.mission_data.setup()
+
     def add_global_attrs(self) -> xr.Dataset:
         '''Add attributes to the mission dataset'''
         self.mission_data.ds_mission.attrs = {'Conventions': 'CF-1.6, COARDS, ACDD-1.3',
