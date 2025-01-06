@@ -12,13 +12,13 @@ class TestFlightProcessor(unittest.TestCase):
         self.mission_data = MissionData(
             memory_card_copy_loc=Path("test_data/memory_card_copy"),
             working_dir=Path("test_data/working"),
-            mission_num="test123",
-            mission_start_date="2023-01-01",
-            mission_end_date="2023-12-31"
+            mission_num="45",
+            mission_start_date="2024-01-01",
+            mission_end_date="2024-12-31"
         )
         self.flight_processor = FlightProcessor(mission_data=self.mission_data)
         self.sample_flight_df = pd.DataFrame({
-            'm_present_time': pd.date_range('2023-01-01', periods=3),
+            'm_present_time': pd.date_range('2024-01-01', periods=3),
             'm_lat': [25.1, 25.2, 25.3],
             'm_lon': [-94.1, -94.2, -94.3],
             'm_pressure': [10.0, 20.0, 30.0],
@@ -32,7 +32,7 @@ class TestFlightProcessor(unittest.TestCase):
         self.assertIn('m_pressure', self.flight_processor.mission_data.ds_fli.variables)
 
     def test_format_flight_ds(self):
-        test_times = pd.date_range('2023-01-01', periods=3)
+        test_times = pd.date_range('2024-01-01', periods=3)
         test_ds = xr.Dataset({
             'm_present_time': ('index', test_times),
             'm_pressure': ('index', [10.0, 20.0, 30.0]),

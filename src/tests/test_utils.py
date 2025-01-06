@@ -9,7 +9,7 @@ from glider_ingest.utils import (
 class TestUtils(unittest.TestCase):
     def setUp(self):
         # Create sample dataset for testing
-        times = np.array(['2023-01-01T00:00:00', '2023-01-01T01:00:00'], dtype='datetime64[ns]')
+        times = np.array(['2024-01-01T00:00:00', '2024-01-01T01:00:00'], dtype='datetime64[ns]')
         self.test_ds = xr.Dataset(
             data_vars={
                 'pressure': ('time', [0, 10]),

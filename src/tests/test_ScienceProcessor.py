@@ -14,14 +14,14 @@ class TestScienceProcessor(unittest.TestCase):
         self.mission_data = MissionData(
             memory_card_copy_loc=Path("test_data/memory_card_copy"),
             working_dir=Path("test_data/working"),
-            glider_id="541",
-            mission_num="48",
-            mission_start_date=datetime(2023, 1, 1),
-            mission_end_date=datetime(2023, 1, 2)
+            glider_id="307",
+            mission_num="45",
+            mission_start_date=datetime(2024, 1, 1),
+            mission_end_date=datetime(2024, 1, 2)
         )
         
         # Create sample science DataFrame
-        times = pd.date_range('2023-01-01', periods=24, freq='h')
+        times = pd.date_range('2024-01-01', periods=24, freq='h')
         self.test_df = pd.DataFrame({
             'sci_m_present_time': times,
             'sci_water_pressure': np.random.uniform(0, 100, 24),
@@ -69,7 +69,7 @@ class TestScienceProcessor(unittest.TestCase):
     def test_convert_sci_df_to_ds(self):
         self.processor.convert_sci_df_to_ds()
         self.assertIsInstance(self.processor.mission_data.ds_sci, xr.Dataset)
-        self.assertEqual(self.processor.mission_data.ds_sci.platform.values, "541")
+        self.assertEqual(self.processor.mission_data.ds_sci.platform.values, "307")
 
     def test_add_sci_attrs(self):
         self.processor.convert_sci_df_to_ds()
