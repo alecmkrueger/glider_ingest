@@ -84,12 +84,12 @@ class TestMissionData(unittest.TestCase):
 
     def test_get_files_no_matching_files(self):
         empty_dir = Path(self.test_dir) / "empty"
-        empty_dir.mkdir()
+        empty_dir.mkdir(exist_ok=True)
         with self.assertRaises(ValueError):
             self.mission_data.get_files(empty_dir, "ebd")
 
     def test_get_output_nc_path(self):
-        self.mission_data.output_nc_path = Path(self.test_dir).joinpath("output")
+        # self.mission_data.output_nc_path = Path(self.test_dir).joinpath("output")
         self.mission_data.nc_filename = "test.nc"
         self.mission_data.mission_title = "Test Mission"
         self.mission_data.get_output_nc_path()
