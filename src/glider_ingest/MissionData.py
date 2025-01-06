@@ -94,27 +94,28 @@ class MissionData:
         self.mission_year = name[name.find('-')+1:find_nth(name,'-',2)].strip()
 
     def _parse_and_validate_glider_name(self, name):
-        self.glider_name = name[:name.find('-')].strip()
-        self.glider_name = self.glider_name.replace('unit_', '')
-        inverted_glider_ids = invert_dict(self.glider_ids)
+        # Extract glider name from the input string
+        glider_name = name.split('-')[0].replace('unit_', '').strip()
         
-        # Try primary lookup
-        try:
-            self.glider_name = self.glider_ids[self.glider_name]
-            if self.glider_id is None:
-                self.glider_id = inverted_glider_ids[self.glider_name]
+        # Create bidirectional mapping
+        inverted_glider_ids = {v: k for k, v in self.glider_ids.items()}
+        
+        # If glider_name is an ID, get the name
+        if glider_name in self.glider_ids:
+            self.glider_name = self.glider_ids[glider_name]
+            self.glider_id = glider_name
             return
-        except KeyError:
-            pass
+            
+        # If glider_name is a name, get the ID
+        if glider_name in inverted_glider_ids:
+            self.glider_name = glider_name
+            self.glider_id = inverted_glider_ids[glider_name]
+            return
+            
+        # If we get here, the glider name/id wasn't found
+        valid_options = list(self.glider_ids.keys()) + list(self.glider_ids.values())
+        raise ValueError(f'Invalid glider identifier: {glider_name}. Must be one of: {valid_options}')
 
-        # Try inverted lookup
-        try:
-            self.glider_id = inverted_glider_ids[self.glider_name]
-            if self.glider_name is None:
-                self.glider_name = self.glider_ids[self.glider_name]
-            return
-        except KeyError as e:
-            raise ValueError(f'Could not find glider_id, please pass glider_id. Must be one of {list(self.glider_ids.keys())} ({e})')
 
     def get_mission_title(self):
         if self.mission_title is None:
