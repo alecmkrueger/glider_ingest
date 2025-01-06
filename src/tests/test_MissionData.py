@@ -59,6 +59,14 @@ class TestMissionData(unittest.TestCase):
         self.mission_data.get_mission_year_and_glider()
         self.assertEqual(self.mission_data.mission_year, "2024")
         self.assertEqual(self.mission_data.glider_id, "307")
+    
+    def test_extract_full_filename_missing_full_filename(self):
+        file = self.test_dir.joinpath("working/test.ebd")
+        file.write_text("unit_307-2024-test")
+        full_filename = self.mission_data._extract_full_filename(file)
+        self.assertIsNone(full_filename)
+        if file.exists():
+            file.unlink()
 
     def test_get_wmo_id(self):
         self.mission_data.glider_id = "307"
