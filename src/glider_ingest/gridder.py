@@ -57,8 +57,6 @@ class Gridder:
     
     def check_len(self,values,expected_length):
         '''Check if the length of a list is less than or equal to the expected length'''
-        if isinstance(values,np.float64):
-            raise ValueError(f'Not enough values to grid {values}')
         if len(values) <= expected_length:
             raise ValueError(f'Not enough values to grid {values}')
     
