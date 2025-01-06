@@ -16,8 +16,7 @@ class MissionProcessor:
 
     mission_data:MissionData
 
-    def attrs_post_init(self):
-        self.mission_data.setup()
+    
 
     def add_global_attrs(self) -> xr.Dataset:
         '''Add attributes to the mission dataset'''
@@ -102,6 +101,7 @@ class MissionProcessor:
         return fli_processor.mission_data
     
     def generate_mission_dataset(self):
+        self.mission_data.setup()
         self.mission_data = self.process_sci()
         self.mission_data = self.process_fli()
 
