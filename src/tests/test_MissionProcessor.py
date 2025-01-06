@@ -18,9 +18,10 @@ class TestMissionProcessor(unittest.TestCase):
             mission_num="123",
             glider_id='199'
         )
+        self.mission_data.setup()
         
         # Create mock dataset
-        time = pd.date_range("2023-01-01", periods=24, freq="H")
+        time = pd.date_range("2023-01-01", periods=24, freq="h")
         lat = np.linspace(28.5, 29.0, 24)
         lon = np.linspace(-94.5, -94.0, 24)
         depth = np.linspace(0, 100, 24)
