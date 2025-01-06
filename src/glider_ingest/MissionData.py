@@ -1,10 +1,8 @@
 import pandas as pd
 import xarray as xr
 from pathlib import Path
-from attrs import define,field,asdict
+from attrs import define,field
 import datetime
-import os
-from pprint import pformat
 
 
 from glider_ingest.utils import find_nth,invert_dict
@@ -27,16 +25,15 @@ class MissionData:
     glider_name:str = field(default=None)
     glider_ids:dict = field(default={'199':'Dora','307':'Reveille','308':'Howdy','540':'Stommel','541':'Sverdrup','1148':'unit_1148'})
     wmo_ids:dict = field(default={'199':'unknown','307':'4801938','308':'4801915','540':'4801916','541':'4801924','1148':'4801915'})
+    wmo_id:str = field(default=None)
 
     # Post init variables
     fli_files_loc:Path = field(init=False)
     fli_cache_loc:Path = field(init=False)
-
     sci_files_loc:Path = field(init=False)
     sci_cache_loc:Path = field(init=False)
 
-    wmo_id:str = field(init=False)
-
+    # Data Ingest Variables
     df_fli:pd.DataFrame = field(init=False)
     ds_fli:xr.Dataset = field(init=False)
 
@@ -44,9 +41,12 @@ class MissionData:
     ds_sci:xr.Dataset = field(init=False)
 
     ds_mission:xr.Dataset = field(init=False)
+    
+    
+    def __attrs_post_init__(self):
+        self.get_file_locs()
 
     def setup(self):
-        self.get_file_locs()
         self.get_mission_date_range()
         self.get_mission_year_and_glider()
         self.get_wmo_id()
@@ -56,14 +56,10 @@ class MissionData:
         
 
     def get_file_locs(self):
-        if self.fli_files_loc is None:
-            self.fli_files_loc = self.memory_card_copy_loc.joinpath('Flight_card/logs')
-        if self.fli_cache_loc is None:
-            self.fli_cache_loc = self.memory_card_copy_loc.joinpath('Flight_card/state/cache')
-        if self.sci_files_loc is None:
-            self.sci_files_loc = self.memory_card_copy_loc.joinpath('Science_card/logs')
-        if self.sci_cache_loc is None:
-                self.sci_cache_loc = self.memory_card_copy_loc.joinpath('Science_card/state/cache')
+        self.fli_files_loc = self.memory_card_copy_loc.joinpath('Flight_card/logs')
+        self.fli_cache_loc = self.memory_card_copy_loc.joinpath('Flight_card/state/cache')
+        self.sci_files_loc = self.memory_card_copy_loc.joinpath('Science_card/logs')
+        self.sci_cache_loc = self.memory_card_copy_loc.joinpath('Science_card/state/cache')
 
     def get_mission_date_range(self):
         if self.mission_end_date is None:
@@ -114,11 +110,6 @@ class MissionData:
         except KeyError as e:
             raise ValueError(f'Could not find glider_id, please pass glider_id. Must be one of {list(self.glider_ids.keys())} ({e})')
 
-        # Final validation
-        if self.glider_id is None:
-            raise ValueError(f'Could not find glider_id, please pass glider_id. Must be one of {list(self.glider_ids.keys())}')
-
-
     def get_mission_title(self):
         if self.mission_title is None:
             self.mission_title = f'Mission {self.mission_num}'
@@ -143,7 +134,8 @@ class MissionData:
 
     def get_wmo_id(self):
         '''Get glider wmo id from glider id and dict of wmo ids'''
-        self.wmo_id = self.wmo_ids[self.glider_id]
+        if self.wmo_id is None:
+            self.wmo_id = self.wmo_ids[self.glider_id]
 
     def get_files(self,files_loc:Path,extension:str):
         '''Get files to process from files_loc'''
