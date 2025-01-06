@@ -45,7 +45,7 @@ class MissionData:
 
     ds_mission:xr.Dataset = field(init=False)
 
-    def __attrs_post_init__(self):
+    def setup(self):
         self.get_file_locs()
         self.get_mission_date_range()
         self.get_mission_year_and_glider()
@@ -56,11 +56,14 @@ class MissionData:
         
 
     def get_file_locs(self):
-        self.fli_files_loc = self.memory_card_copy_loc.joinpath('Flight_card/logs')
-        self.fli_cache_loc = self.memory_card_copy_loc.joinpath('Flight_card/state/cache')
-
-        self.sci_files_loc = self.memory_card_copy_loc.joinpath('Science_card/logs')
-        self.sci_cache_loc = self.memory_card_copy_loc.joinpath('Science_card/state/cache')
+        if self.fli_files_loc is None:
+            self.fli_files_loc = self.memory_card_copy_loc.joinpath('Flight_card/logs')
+        if self.fli_cache_loc is None:
+            self.fli_cache_loc = self.memory_card_copy_loc.joinpath('Flight_card/state/cache')
+        if self.sci_files_loc is None:
+            self.sci_files_loc = self.memory_card_copy_loc.joinpath('Science_card/logs')
+        if self.sci_cache_loc is None:
+                self.sci_cache_loc = self.memory_card_copy_loc.joinpath('Science_card/state/cache')
 
     def get_mission_date_range(self):
         if self.mission_end_date is None:
@@ -69,32 +72,52 @@ class MissionData:
             self.mission_start_date = '2010-01-01'
 
     def get_mission_year_and_glider(self):
-        files = self.get_files(files_loc=self.sci_files_loc,extension='ebd')
-        file = files[10]            
-        fp = open(file, errors="ignore")
-        for line in fp:
-            if 'full_filename' in line.strip():
-                name = line.replace('full_filename:','').strip()
-                self.mission_year = name[name.find('-')+1:find_nth(name,'-',2)].strip()
-                self.glider_name = name[:name.find('-')].strip()
-                self.glider_name = self.glider_name.replace('unit_','')
-                inverted_glider_ids = invert_dict(self.glider_ids)
-                # Get the glider_id using the glider_name, sometimes the name given by full_filename is the key and other times its the value
-                try:
-                    self.glider_name = self.glider_ids[self.glider_name]
-                    if self.glider_id is None:
-                        self.glider_id = inverted_glider_ids[self.glider_name]
-                except KeyError as e:
-                    try:
-                        self.glider_name = inverted_glider_ids[self.glider_name]
-                        if self.glider_id is None:
-                            self.glider_id = self.glider_ids[self.glider_name]
-                    except KeyError as e:
-                        raise ValueError(f'Could not find glider_id, please pass glider_id. Must be one of {list(self.glider_ids.keys())} ({e})')
-        # Check if we found the glider_id in the file
+        file = self._get_sample_file()
+        name = self._extract_full_filename(file)
+        self._parse_mission_year(name)
+        self._parse_and_validate_glider_name(name)
+
+    def _get_sample_file(self):
+        files = self.get_files(files_loc=self.sci_files_loc, extension='ebd')
+        return files[10]
+
+    def _extract_full_filename(self, file):
+        with open(file, errors="ignore") as fp:
+            for line in fp:
+                if 'full_filename' in line.strip():
+                    return line.replace('full_filename:', '').strip()
+        return None
+
+    def _parse_mission_year(self, name):
+        self.mission_year = name[name.find('-')+1:find_nth(name,'-',2)].strip()
+
+    def _parse_and_validate_glider_name(self, name):
+        self.glider_name = name[:name.find('-')].strip()
+        self.glider_name = self.glider_name.replace('unit_', '')
+        inverted_glider_ids = invert_dict(self.glider_ids)
+        
+        # Try primary lookup
+        try:
+            self.glider_name = self.glider_ids[self.glider_name]
+            if self.glider_id is None:
+                self.glider_id = inverted_glider_ids[self.glider_name]
+            return
+        except KeyError:
+            pass
+
+        # Try inverted lookup
+        try:
+            self.glider_name = inverted_glider_ids[self.glider_name]
+            if self.glider_id is None:
+                self.glider_id = self.glider_ids[self.glider_name]
+            return
+        except KeyError as e:
+            raise ValueError(f'Could not find glider_id, please pass glider_id. Must be one of {list(self.glider_ids.keys())} ({e})')
+
+        # Final validation
         if self.glider_id is None:
             raise ValueError(f'Could not find glider_id, please pass glider_id. Must be one of {list(self.glider_ids.keys())}')
-        fp.close()
+
 
     def get_mission_title(self):
         if self.mission_title is None:
