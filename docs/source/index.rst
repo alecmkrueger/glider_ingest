@@ -6,16 +6,14 @@
 glider_ingest documentation
 ===========================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
+Package for ingesting glider data
 
+To install using pip:
+``pip install glider_ingest``
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
    glider_ingest
-   modules
 
 
