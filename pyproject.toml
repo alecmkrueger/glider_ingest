@@ -3,6 +3,8 @@ name = "glider-ingest"
 version = "1.1.16"
 description = "Package for GERG to ingest raw glider data into NetCDF files"
 authors = ["Alec <alecmkrueger@tamu.edu>"]
+maintainers = ["Alec <alecmkrueger@tamu.edu>"]
+keywords = ["glider", "ingest", "netcdf", "python", "data"]
 readme = "README.md"
 packages = [{include = "glider_ingest", from = "src"}]
 
