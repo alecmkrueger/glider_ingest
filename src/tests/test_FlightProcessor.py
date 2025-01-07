@@ -28,6 +28,11 @@ class TestFlightProcessor(unittest.TestCase):
             'm_water_depth': [100.0, 200.0, 300.0]
         })
 
+    def tearDown(self):
+        # Clean up test data and temporary files
+        if hasattr(self.mission_data, 'ds_fli'):
+            del self.mission_data.ds_fli
+
     def test_convert_fli_df_to_ds(self):
         self.flight_processor.mission_data.df_fli = self.sample_flight_df
         self.flight_processor.convert_fli_df_to_ds()
@@ -76,4 +81,7 @@ class TestFlightProcessor(unittest.TestCase):
         self.assertIn('latitude', self.flight_processor.mission_data.ds_fli.variables)
         self.assertIn('longitude', self.flight_processor.mission_data.ds_fli.variables)
         self.assertIn('depth', self.flight_processor.mission_data.ds_fli.variables)
+    
+
+
 
