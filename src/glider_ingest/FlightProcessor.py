@@ -11,12 +11,15 @@ from glider_ingest.utils import print_time
 @define
 class FlightProcessor:
     """
-    A class to process flight data from gliders. The data is loaded from DBD files,
-    converted to pandas DataFrames, and then transformed into xarray Datasets 
-    with metadata attributes.
+    A class to process flight data from gliders.
+    
+    The data is loaded from DBD files, converted to pandas DataFrames, and then 
+    transformed into xarray Datasets with metadata attributes.
 
-    Attributes:
-        mission_data (MissionData): An instance of the MissionData class containing mission information.
+    Parameters
+    ----------
+    mission_data : MissionData
+        An instance of the MissionData class containing mission information.
     """
     
     mission_data: MissionData
@@ -25,7 +28,14 @@ class FlightProcessor:
     def add_flight_attrs(self) -> xr.Dataset:
         """
         Add metadata attributes to the variables in the flight Dataset.
-        Attributes include accuracy, precision, units, and standard names.
+
+        Adds attributes including accuracy, precision, units, and standard names
+        to the flight Dataset variables.
+
+        Returns
+        -------
+        xr.Dataset
+            Dataset with added metadata attributes.
         """
         self.mission_data.ds_fli['m_pressure'].attrs = {'accuracy': 0.01,
         'ancillary_variables': ' ',
@@ -99,13 +109,13 @@ class FlightProcessor:
 
     def load_flight(self):
         """
-        Load flight data from DBD files, clean and preprocess the data, 
-        and store it in the MissionData's DataFrame.
+        Load flight data from DBD files and preprocess the data.
 
-        - Loads data using the DBDReader package.
-        - Filters data within the mission start and end dates.
-        - Converts pressure from decibars to bars.
-        - Renames latitude and longitude columns for clarity.
+        Loads and processes flight data through the following steps:
+        - Loads data using the DBDReader package
+        - Filters data within the mission start and end dates
+        - Converts pressure from decibars to bars
+        - Renames latitude and longitude columns for clarity
         """
         files = self.mission_data.get_files(files_loc=self.mission_data.fli_files_loc, extension='dbd')
         dbd = dbdreader.MultiDBD(files, cacheDir=self.mission_data.fli_cache_loc)
@@ -142,9 +152,17 @@ class FlightProcessor:
 
     def format_flight_ds(self) -> xr.Dataset:
         """
-        Format the flight Dataset by sorting, dropping unnecessary variables, and renaming others.
-        - Sorts the Dataset based on present time.
-        - Drops the original time variable and renames relevant variables.
+        Format the flight Dataset.
+
+        Performs the following operations:
+        - Sorts the Dataset based on present time
+        - Drops the original time variable
+        - Renames relevant variables
+
+        Returns
+        -------
+        xr.Dataset
+            The formatted flight Dataset.
         """
         self.mission_data.ds_fli['index'] = np.sort(self.mission_data.ds_fli['m_present_time'].values.astype('datetime64[ns]'))
         self.mission_data.ds_fli = self.mission_data.ds_fli.drop_vars('m_present_time')
@@ -153,14 +171,18 @@ class FlightProcessor:
 
     def process_flight_data(self) -> xr.Dataset:
         """
-        Execute the entire flight data processing pipeline:
-        1. Load flight data from DBD files.
-        2. Convert DataFrame to Dataset.
-        3. Add metadata attributes.
-        4. Format the Dataset.
+        Execute the complete flight data processing pipeline.
 
-        Returns:
-            xr.Dataset: The final processed flight Dataset.
+        Performs the following steps:
+        1. Load flight data from DBD files
+        2. Convert DataFrame to Dataset
+        3. Add metadata attributes
+        4. Format the Dataset
+
+        Returns
+        -------
+        xr.Dataset
+            The final processed flight Dataset.
         """
         print_time('Processing Flight Data')
         self.load_flight()
