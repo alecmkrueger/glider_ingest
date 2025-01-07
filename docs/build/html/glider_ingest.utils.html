@@ -1,0 +1,219 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>glider_ingest.utils module &mdash; glider_ingest  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="glider_ingest.example module" href="glider_ingest.example.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            glider_ingest
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="glider_ingest.html">glider_ingest package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="glider_ingest.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="glider_ingest.FlightProcessor.html">glider_ingest.FlightProcessor module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="glider_ingest.Gridder.html">glider_ingest.Gridder module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="glider_ingest.MissionData.html">glider_ingest.MissionData module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="glider_ingest.MissionProcessor.html">glider_ingest.MissionProcessor module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="glider_ingest.ScienceProcessor.html">glider_ingest.ScienceProcessor module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="glider_ingest.example.html">glider_ingest.example module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">glider_ingest.utils module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#glider_ingest.utils.add_gridded_data"><code class="docutils literal notranslate"><span class="pre">add_gridded_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#glider_ingest.utils.find_nth"><code class="docutils literal notranslate"><span class="pre">find_nth()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#glider_ingest.utils.get_polygon_coords"><code class="docutils literal notranslate"><span class="pre">get_polygon_coords()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#glider_ingest.utils.invert_dict"><code class="docutils literal notranslate"><span class="pre">invert_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#glider_ingest.utils.print_time"><code class="docutils literal notranslate"><span class="pre">print_time()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="glider_ingest.html#module-glider_ingest">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">glider_ingest</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="glider_ingest.html">glider_ingest package</a></li>
+      <li class="breadcrumb-item active">glider_ingest.utils module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/glider_ingest.utils.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-glider_ingest.utils">
+<span id="glider-ingest-utils-module"></span><h1>glider_ingest.utils module<a class="headerlink" href="#module-glider_ingest.utils" title="Link to this heading"></a></h1>
+<p>Module containing utility functions for the package.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="glider_ingest.utils.add_gridded_data">
+<span class="sig-prename descclassname"><span class="pre">glider_ingest.utils.</span></span><span class="sig-name descname"><span class="pre">add_gridded_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds_mission</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dataset</span></span></span><a class="headerlink" href="#glider_ingest.utils.add_gridded_data" title="Link to this definition"></a></dt>
+<dd><p>Add gridded data to a mission dataset using the Gridder class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ds_mission</strong> (<em>xarray.Dataset</em>) – The mission dataset to process.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The updated dataset with gridded data added.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>xarray.Dataset</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>This function creates a <cite>Gridder</cite> object to compute the gridded dataset,
+updates the mission dataset with the gridded data, and prints timing information.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="glider_ingest.utils.find_nth">
+<span class="sig-prename descclassname"><span class="pre">glider_ingest.utils.</span></span><span class="sig-name descname"><span class="pre">find_nth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">haystack</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">needle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#glider_ingest.utils.find_nth" title="Link to this definition"></a></dt>
+<dd><p>Find the nth occurrence of a substring in a string.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>haystack</strong> (<em>str</em>) – The string to search in.</p></li>
+<li><p><strong>needle</strong> (<em>str</em>) – The substring to find.</p></li>
+<li><p><strong>n</strong> (<em>int</em>) – The occurrence number of the substring to find.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The index of the nth occurrence of the substring, or -1 if not found.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="glider_ingest.utils.get_polygon_coords">
+<span class="sig-prename descclassname"><span class="pre">glider_ingest.utils.</span></span><span class="sig-name descname"><span class="pre">get_polygon_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ds_mission</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dataset</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#glider_ingest.utils.get_polygon_coords" title="Link to this definition"></a></dt>
+<dd><p>Generate polygon coordinates for the dataset’s global attributes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ds_mission</strong> (<em>xarray.Dataset</em>) – The mission dataset containing latitude and longitude values.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A string representation of the polygon in Well-Known Text (WKT) format.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The polygon is constructed based on the northmost, eastmost, southmost,
+and westmost points where latitude is below 29.5.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="glider_ingest.utils.invert_dict">
+<span class="sig-prename descclassname"><span class="pre">glider_ingest.utils.</span></span><span class="sig-name descname"><span class="pre">invert_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#glider_ingest.utils.invert_dict" title="Link to this definition"></a></dt>
+<dd><p>Invert the keys and values of a dictionary.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>dict</strong> (<em>dict</em>) – The dictionary to invert.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new dictionary with keys and values swapped.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="glider_ingest.utils.print_time">
+<span class="sig-prename descclassname"><span class="pre">glider_ingest.utils.</span></span><span class="sig-name descname"><span class="pre">print_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#glider_ingest.utils.print_time" title="Link to this definition"></a></dt>
+<dd><p>Print a message with the current time appended.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>message</strong> (<em>str</em>) – The message to print.</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The current time is formatted as ‘HH:MM:SS’.</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="glider_ingest.example.html" class="btn btn-neutral float-left" title="glider_ingest.example module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Alec Krueger.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
