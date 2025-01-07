@@ -9,9 +9,12 @@ import pytest
 
 class TestFlightProcessor(unittest.TestCase):
     def setUp(self):
+        self.test_dir = Path(__file__).parent.joinpath("test_data")
+        memory_card_copy_loc=Path(self.test_dir).joinpath("memory_card_copy")
+        working_dir=Path(self.test_dir).joinpath("working")
         self.mission_data = MissionData(
-            memory_card_copy_loc=Path("test_data/memory_card_copy"),
-            working_dir=Path("test_data/working"),
+            memory_card_copy_loc=memory_card_copy_loc,
+            working_dir=working_dir,
             mission_num="45",
             mission_start_date="2024-01-01",
             mission_end_date="2024-12-31"
