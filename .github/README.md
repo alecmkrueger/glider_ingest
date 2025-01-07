@@ -12,7 +12,7 @@
   <p align="center">
     Convert raw data from GERG gliders into netcdf using python
     <br />
-    <a href="https://github.com/alecmkrueger/glider-ingest"><strong>Explore the docs »</strong></a>
+    <a href="https://glider-ingest-readthedocs.readthedocs.io/en/latest/"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     <a href="https://github.com/alecmkrueger/glider-ingest/issues/new?labels=bug&template=bug-report---.md">Report Bug</a>
