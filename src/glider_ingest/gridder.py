@@ -1,98 +1,136 @@
 '''
-Module containing the Gridder class
+Module containing the Gridder class.
 '''
-from attrs import define,field
+from attrs import define, field
 import numpy as np
 import pandas as pd
 import xarray as xr
 import gsw
 
-
 @define
 class Gridder:
     '''
-    Class to create and calculate the gridded dataset.
-    This class handles some functions that are coupled to make the code easier to read and maintain
-    '''
-    ds_mission:xr.Dataset
-    interval_h:int|float = field(default=1)
-    interval_p:int|float = field(default=0.1)
+    Class to create and calculate a gridded dataset from a mission dataset.
 
-    ds:xr.Dataset = field(init=False)
-    ds_gridded:xr.Dataset = field(init=False)
-    variable_names:list = field(init=False)
-    time:np.ndarray = field(init=False)
-    pres:np.ndarray = field(init=False)
-    lat:np.ndarray = field(init=False)
-    lon:np.ndarray = field(init=False)
-    xx:np.ndarray = field(init=False)
-    yy:np.ndarray = field(init=False)
-    int_time:np.ndarray = field(init=False)
-    int_pres:np.ndarray = field(init=False)
-    data_arrays:dict = field(init=False)
-    grid_pres:np.ndarray = field(init=False)
-    grid_time:np.ndarray = field(init=False)
+    This class provides methods for processing oceanographic data, creating time and pressure grids,
+    interpolating data onto those grids, and adding metadata attributes to the gridded dataset.
+
+    Attributes:
+        ds_mission (xr.Dataset): The input mission dataset to process.
+        interval_h (int | float): Time interval (in hours) for gridding.
+        interval_p (int | float): Pressure interval (in decibars) for gridding.
+
+    Internal Attributes (initialized later):
+        ds (xr.Dataset): A copy of the mission dataset with NaN pressures removed.
+        variable_names (list): List of variable names in the dataset.
+        time, pres (np.ndarray): Arrays of time and pressure values.
+        lat, lon (np.ndarray): Mean latitude and longitude of the dataset.
+        grid_pres, grid_time (np.ndarray): Pressure and time grids for interpolation.
+        data_arrays (dict): Dictionary of initialized gridded variables.
+    '''
+
+    ds_mission: xr.Dataset
+    interval_h: int | float = field(default=1)  # Time interval for gridding in hours.
+    interval_p: int | float = field(default=0.1)  # Pressure interval for gridding in decibars.
+
+    # Attributes initialized post-construction.
+    ds: xr.Dataset = field(init=False)
+    ds_gridded: xr.Dataset = field(init=False)
+    variable_names: list = field(init=False)
+    time: np.ndarray = field(init=False)
+    pres: np.ndarray = field(init=False)
+    lat: np.ndarray = field(init=False)
+    lon: np.ndarray = field(init=False)
+    xx: np.ndarray = field(init=False)
+    yy: np.ndarray = field(init=False)
+    int_time: np.ndarray = field(init=False)
+    int_pres: np.ndarray = field(init=False)
+    data_arrays: dict = field(init=False)
+    grid_pres: np.ndarray = field(init=False)
+    grid_time: np.ndarray = field(init=False)
 
     def __attrs_post_init__(self):
         '''
-        Initalize the class and get the dimension values of the dataset
+        Initializes the Gridder class by copying the mission dataset, filtering valid pressures,
+        extracting dataset dimensions, and initializing the time-pressure grid.
         '''
         self.ds = self.ds_mission.copy()
-        # Get indexes of where there are non-nan pressure values
+        
+        # Identify indexes of valid (non-NaN) pressure values.
         tloc_idx = np.where(~np.isnan(self.ds['pressure']))[0]
-        # Select the times were thre are non-nan pressure values
+        
+        # Select times corresponding to valid pressures.
         self.ds = self.ds.isel(time=tloc_idx)
-        # Get all of the variables present in the dataset
+
+        # Extract variable names and time/pressure values.
         self.variable_names = list(self.ds.data_vars.keys())
-        # Get all of the time values in the dataset
         self.time = self.ds.time.values
-        self.check_len(self.time,1)
-        # Get all of the pressure values in the dataset
+        self.check_len(self.time, 1)  # Ensure there is sufficient data to grid.
         self.pres = self.ds.pressure.values
-        # Get all of the lat and lon values in the dataset
+
+        # Calculate mean latitude and longitude.
         self.lon = np.nanmean(self.ds_mission.longitude.values)
         self.lat = np.nanmean(self.ds_mission.latitude.values)
 
+        # Initialize the time-pressure grid.
         self.initalize_grid()
-    
-    def check_len(self,values,expected_length):
-        '''Check if the length of a list is less than or equal to the expected length'''
+
+    def check_len(self, values, expected_length):
+        '''
+        Ensures that the length of the input array is greater than the expected length.
+
+        Args:
+            values (list | np.ndarray): Input array to check.
+            expected_length (int): Minimum required length.
+
+        Raises:
+            ValueError: If the length of `values` is less than or equal to `expected_length`.
+        '''
         if len(values) <= expected_length:
             raise ValueError(f'Not enough values to grid {values}')
-    
+
     def initalize_grid(self):
         '''
-        Initalize the grid that is used to calcuate the gridded dataset
+        Creates a time-pressure grid for interpolation.
+
+        This method calculates evenly spaced time intervals based on the `interval_h` attribute
+        and pressure intervals based on the `interval_p` attribute. The resulting grids are stored
+        as internal attributes for further processing.
         '''
+        # Define the start and end times rounded to the nearest interval.
         start_hour = int(pd.to_datetime(self.time[0]).hour / self.interval_h) * self.interval_h
         end_hour = int(pd.to_datetime(self.time[-1]).hour / self.interval_h) * self.interval_h
         start_time = pd.to_datetime(self.time[0]).replace(hour=start_hour, minute=0, second=0)
         end_time = pd.to_datetime(self.time[-1]).replace(hour=end_hour, minute=0, second=0)
 
-        self.int_time = np.arange(start_time, end_time+np.timedelta64(self.interval_h, 'h'), np.timedelta64(self.interval_h, 'h')).astype('datetime64[ns]')
+        # Generate an array of evenly spaced time intervals.
+        self.int_time = np.arange(start_time, end_time + np.timedelta64(self.interval_h, 'h'),
+                                  np.timedelta64(self.interval_h, 'h')).astype('datetime64[ns]')
 
-        # create the pressure grids for intepolation
-        start_pres = 0
-        end_pres = np.nanmax(self.pres)
+        # Create evenly spaced pressure intervals.
+        start_pres = 0  # Start pressure in dbar.
+        end_pres = np.nanmax(self.pres)  # Maximum pressure in dataset.
         self.int_pres = np.arange(start_pres, end_pres, self.interval_p)
 
-        self.grid_pres,self.grid_time = np.meshgrid(self.int_pres,self.int_time[1:]) # get the time between two time point
-        self.xx,self.yy = np.shape(self.grid_pres)
+        # Generate the pressure-time grid using a meshgrid.
+        self.grid_pres, self.grid_time = np.meshgrid(self.int_pres, self.int_time[1:])
+        self.xx, self.yy = np.shape(self.grid_pres)  # Dimensions of the grid.
 
-        # List of variable names
+        # Initialize arrays for gridded variables.
         var_names = ['int_temp', 'int_salt', 'int_cond', 'int_dens', 'int_turb', 'int_cdom', 'int_chlo', 'int_oxy4']
-
-        # Dictionary to store the arrays
         self.data_arrays = {}
 
-        # Initialize each array with NaN values and store it in the dictionary
         for var in var_names:
+            # Initialize empty arrays with NaN values for each variable.
             self.data_arrays[var] = np.empty((self.xx, self.yy))
             self.data_arrays[var].fill(np.nan)
 
     def add_attrs(self):
         '''
-        Add dataset attributes to the gridded variables
+        Adds descriptive metadata attributes to the gridded dataset variables.
+
+        This method assigns long names, units, valid ranges, and other metadata to the
+        gridded dataset variables for better interpretation and standardization.
         '''
         self.ds_gridded['g_temp'].attrs = {'long_name': 'Gridded Temperature',
         'observation_type': 'calculated',
@@ -208,9 +246,49 @@ class Gridder:
         'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
 
     def create_gridded_dataset(self):
-        '''
-        Calculate gridded data and create gridded dataset
-        '''
+        """
+        Process and interpolate time-sliced data to create a gridded dataset.
+
+        This method iterates through time slices, processes data for each slice, 
+        and interpolates variables like temperature, salinity, conductivity, 
+        density, and optionally oxygen, onto a pressure-based grid. Additional 
+        calculations for derived quantities such as spiciness, potential heat 
+        content, and depth are performed. The results are stored in an 
+        `xarray.Dataset` with standardized dimensions.
+
+        Steps:
+        - Select and sort data for each time slice.
+        - Handle duplicate pressure values by adjusting slightly to ensure uniqueness.
+        - Interpolate data variables onto a fixed pressure grid.
+        - Compute derived quantities:
+        - Absolute salinity, conservative temperature, and potential temperature.
+        - Specific heat capacity, spiciness, and depth.
+        - Heat content and potential heat content.
+        - Assemble results into an `xarray.Dataset` with standardized dimensions and attributes.
+
+        Derived quantities:
+        - Heat content (HC): \(\Delta Z \cdot C_p \cdot T \cdot \rho\)
+        - Potential heat content (PHC): 
+        \(\Delta Z \cdot C_p \cdot (T - 26) \cdot \rho\), where values < 0 are set to NaN.
+
+        Attributes:
+        - `self.ds_gridded`: The resulting gridded dataset with variables such as:
+            - `g_temp`: Gridded temperature.
+            - `g_salt`: Gridded salinity.
+            - `g_cond`: Gridded conductivity.
+            - `g_dens`: Gridded density.
+            - `g_oxy4`: Gridded oxygen (if available).
+            - `g_hc`: Heat content in kJ/cm².
+            - `g_phc`: Potential heat content in kJ/cm².
+            - `g_sp`: Spiciness.
+            - `g_depth`: Depth in meters.
+
+        Note:
+            Requires the `gsw` library for oceanographic calculations and assumes 
+            that `self.data_arrays` and `self.int_time` are properly initialized.
+
+        """
+
         for ttt in range(self.xx):
             tds:xr.Dataset = self.ds.sel(time=slice(str(self.int_time[ttt]),str(self.int_time[ttt+1]))).copy()
             if len(tds.time) > 0:
