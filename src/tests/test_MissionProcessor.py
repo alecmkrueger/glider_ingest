@@ -26,7 +26,7 @@ class TestMissionProcessor(unittest.TestCase):
         self.assertEqual(self.processor.mission_data.mission_num, "45")
         self.assertEqual(self.processor.mission_data.glider_id, "307")
 
-
+    @pytest.mark.slow()
     def test_add_global_attrs_validation(self):
         self.processor.generate_mission_dataset()
         self.processor.add_global_attrs()
@@ -47,6 +47,7 @@ class TestMissionProcessor(unittest.TestCase):
         self.assertEqual(self.mission_data.ds_mission.attrs["platform_type"], "Slocum Glider")
         self.assertEqual(self.mission_data.ds_mission.attrs["wmo_id"], "4801938")
 
+    @pytest.mark.slow()
     def test_save_mission_dataset(self):
         # Setup test dataset
         self.mission_data.output_nc_path = self.test_dir / "test_output.nc"
