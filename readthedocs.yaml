@@ -5,9 +5,15 @@ build:
   tools:
     python: "3.12"
 
-python:
-  install:
-    - requirements: docs/requirements.txt
 
 sphinx:
-  configuration: docs/source/conf.py
+  configuration: source/conf.py
+
+
+formats: 
+  - pdf
+
+
+python:
+  install:
+    - requirements: requirements.txt
