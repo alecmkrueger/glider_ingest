@@ -10,6 +10,7 @@ build:
     python: "3.12"
   jobs:
     pre_build:
+      - pip install src/glider_ingest
       - sphinx-apidoc -f -o docs/source src/glider_ingest
 
 
