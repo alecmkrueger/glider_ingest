@@ -10,7 +10,7 @@ build:
     python: "3.12"
   jobs:
     pre_build:
-      - sphinx-apidoc -f -o docs/source/package src/glider_ingest -e
+      - make html
 
 
 sphinx:
