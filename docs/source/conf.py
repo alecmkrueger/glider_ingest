@@ -23,16 +23,6 @@ extensions = [
 
 autoapi_dirs = ['../../src/glider_ingest']
 
-autoapi_options = [
-    'members', 
-    'undoc-members', 
-    'private-members', 
-    'show-inheritance', 
-    'special-members', 
-    'imported-members',
-    'show-inheritance-diagram'
-]
-
 autoapi_member_order = ['groupwise']
 
 templates_path = ['_templates']
