@@ -9,6 +9,4 @@ To install using pip:
 .. toctree::
    :maxdepth: 3
 
-   package/glider_ingest
-
 
