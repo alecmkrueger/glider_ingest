@@ -171,7 +171,7 @@ class MissionData:
         self._parse_mission_year(name)
         self._parse_and_validate_glider_name(name)
         
-    def add_variables(self,variables:list[Variable]):
+    def add_variables(self,variables:list[Variable],debug=False):
         """Adds variables to the mission data.
 
         Args:
@@ -184,7 +184,8 @@ class MissionData:
         if not all(isinstance(var, Variable) for var in variables):
             raise TypeError("All elements in the list must be of type Variable or string.")
         # Add variables to mission_vars dictionary
-        print(f"Adding variables: {[var.data_source_name for var in variables]}")
+        if debug:
+            print(f"Adding variables: {[var.data_source_name for var in variables]}")
         variables_dict = {var.data_source_name: var for var in variables}
         self.mission_vars.update(variables_dict)
         
