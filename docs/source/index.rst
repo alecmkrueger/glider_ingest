@@ -10,4 +10,5 @@ To install using pip:
    :maxdepth: 3
 
    examples/index
+   autoapi/index
 
