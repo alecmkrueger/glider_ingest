@@ -21,7 +21,7 @@ extensions = [
     'sphinx.ext.inheritance_diagram'
 ]
 
-autoapi_dirs = ['../../src/glider_ingest']
+autoapi_dirs = ['../src/glider_ingest']
 
 autoapi_member_order = 'groupwise'
 
