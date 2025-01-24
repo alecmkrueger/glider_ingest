@@ -257,37 +257,36 @@ class Gridder:
         `xarray.Dataset` with standardized dimensions.
 
         Steps:
-        - Select and sort data for each time slice.
-        - Handle duplicate pressure values by adjusting slightly to ensure uniqueness.
-        - Interpolate data variables onto a fixed pressure grid.
-        - Compute derived quantities:
-        - Absolute salinity, conservative temperature, and potential temperature.
-        - Specific heat capacity, spiciness, and depth.
-        - Heat content and potential heat content.
-        - Assemble results into an `xarray.Dataset` with standardized dimensions and attributes.
+            - Select and sort data for each time slice
+            - Handle duplicate pressure values by adjusting slightly to ensure uniqueness
+            - Interpolate data variables onto a fixed pressure grid
+            - Compute derived quantities:
+                - Absolute salinity, conservative temperature, and potential temperature
+                - Specific heat capacity, spiciness, and depth
+                - Heat content and potential heat content
+            - Assemble results into an `xarray.Dataset` with standardized dimensions and attributes
 
         Derived quantities:
-        - Heat content (HC): \(\Delta Z \cdot C_p \cdot T \cdot \rho\)
-        - Potential heat content (PHC): 
-        \(\Delta Z \cdot C_p \cdot (T - 26) \cdot \rho\), where values < 0 are set to NaN.
+            - Heat content (HC): :math:`\\Delta Z \\cdot C_p \\cdot T \\cdot \\rho`
+            - Potential heat content (PHC): :math:`\\Delta Z \\cdot C_p \\cdot (T - 26) \\cdot \\rho`, where values < 0 are set to NaN
 
         Attributes:
-        - `self.ds_gridded`: The resulting gridded dataset with variables such as:
-            - `g_temp`: Gridded temperature.
-            - `g_salt`: Gridded salinity.
-            - `g_cond`: Gridded conductivity.
-            - `g_dens`: Gridded density.
-            - `g_oxy4`: Gridded oxygen (if available).
-            - `g_hc`: Heat content in kJ/cm².
-            - `g_phc`: Potential heat content in kJ/cm².
-            - `g_sp`: Spiciness.
-            - `g_depth`: Depth in meters.
+            self.ds_gridded: The resulting gridded dataset with variables:
+                - g_temp: Gridded temperature
+                - g_salt: Gridded salinity
+                - g_cond: Gridded conductivity
+                - g_dens: Gridded density
+                - g_oxy4: Gridded oxygen (if available)
+                - g_hc: Heat content in kJ cm^{-2}
+                - g_phc: Potential heat content in kJ cm^{-2}
+                - g_sp: Spiciness
+                - g_depth: Depth in meters
 
         Note:
             Requires the `gsw` library for oceanographic calculations and assumes 
             that `self.data_arrays` and `self.int_time` are properly initialized.
-
         """
+
 
         for ttt in range(self.xx):
             tds:xr.Dataset = self.ds.sel(time=slice(str(self.int_time[ttt]),str(self.int_time[ttt+1]))).copy()

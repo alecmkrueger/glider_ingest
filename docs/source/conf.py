@@ -23,10 +23,12 @@ extensions = [
 
 autoapi_dirs = ['../../src/glider_ingest']
 
-autoapi_member_order = ['groupwise']
+autoapi_member_order = 'groupwise'
 
 templates_path = ['_templates']
 exclude_patterns = []
+
+autoapi_keep_files = False
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

@@ -5,6 +5,7 @@ import dbdreader
 from attrs import define
 
 from glider_ingest.MissionData import MissionData
+from glider_ingest.variable import Variable
 from glider_ingest.utils import print_time
 
 
@@ -24,89 +25,6 @@ class FlightProcessor:
     
     mission_data: MissionData
 
-
-    def add_flight_attrs(self) -> xr.Dataset:
-        """
-        Add metadata attributes to the variables in the flight Dataset.
-
-        Adds attributes including accuracy, precision, units, and standard names
-        to the flight Dataset variables.
-
-        Returns
-        -------
-        xr.Dataset
-            Dataset with added metadata attributes.
-        """
-        self.mission_data.ds_fli['m_pressure'].attrs = {'accuracy': 0.01,
-        'ancillary_variables': ' ',
-        'axis': 'Z',
-        'bytes': 4,
-        'comment': 'Alias for m_pressure, multiplied by 10 to convert from bar to dbar',
-        'long_name': 'GPS Pressure',
-        'observation_type': 'measured',
-        'platform': 'platform',
-        'positive': 'down',
-        'precision': 0.01,
-        'reference_datum': 'sea-surface',
-        'resolution': 0.01,
-        'source_sensor': 'sci_water_pressure',
-        'standard_name': 'sea_water_pressure',
-        'units': 'bar',
-        'valid_max': 2000.0,
-        'valid_min': 0.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.mission_data.ds_fli['m_water_depth'].attrs = {'accuracy': 0.01,
-        'ancillary_variables': ' ',
-        'axis': 'Z',
-        'bytes': 4,
-        'comment': 'Alias for m_depth',
-        'long_name': 'GPS Depth',
-        'observation_type': 'calculated',
-        'platform': 'platform',
-        'positive': 'down',
-        'precision': 0.01,
-        'reference_datum': 'sea-surface',
-        'resolution': 0.01,
-        'source_sensor': 'm_depth',
-        'standard_name': 'sea_water_depth',
-        'units': 'meters',
-        'valid_max': 2000.0,
-        'valid_min': 0.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.mission_data.ds_fli['m_latitude'].attrs = {'ancillary_variables': ' ',
-        'axis': 'Y',
-        'bytes': 8,
-        'comment': 'm_gps_lat converted to decimal degrees and interpolated',
-        'coordinate_reference_frame': 'urn:ogc:crs:EPSG::4326',
-        'long_name': 'Latitude',
-        'observation_type': 'calculated',
-        'platform': 'platform',
-        'precision': 5,
-        'reference': 'WGS84',
-        'source_sensor': 'm_gps_lat',
-        'standard_name': 'latitude',
-        'units': 'degree_north',
-        'valid_max': 90.0,
-        'valid_min': -90.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.mission_data.ds_fli['m_longitude'].attrs = {'ancillary_variables': ' ',
-        'axis': 'X',
-        'bytes': 8,
-        'comment': 'm_gps_lon converted to decimal degrees and interpolated',
-        'coordinate_reference_frame': 'urn:ogc:crs:EPSG::4326',
-        'long_name': 'Longitude',
-        'observation_type': 'calculated',
-        'platform': 'platform',
-        'precision': 5,
-        'reference': 'WGS84',
-        'source_sensor': 'm_gps_lon',
-        'standard_name': 'longitude',
-        'units': 'degree_east',
-        'valid_max': 180.0,
-        'valid_min': -180.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-
-
     def load_flight(self):
         """
         Load flight data from DBD files and preprocess the data.
@@ -118,11 +36,14 @@ class FlightProcessor:
         - Renames latitude and longitude columns for clarity
         """
         files = self.mission_data.get_files(files_loc=self.mission_data.fli_files_loc, extension='dbd')
-        dbd = dbdreader.MultiDBD(files, cacheDir=self.mission_data.fli_cache_loc)
-        data = dbd.get_sync('m_lat', 'm_lon', 'm_pressure', 'm_water_depth')
-
+        dbd = dbdreader.MultiDBD(files, cacheDir=self.mission_data.fli_cache_loc)        
+        get_vars = ([var.data_source_name for var in self.mission_data.mission_vars.values() if var.data_source_name.startswith('m_')])
+        data = dbd.get_sync(*get_vars)
+        
         self.mission_data.df_fli = pd.DataFrame(data).T
-        self.mission_data.df_fli.columns = ['m_present_time', 'm_lat', 'm_lon', 'm_pressure', 'm_water_depth']
+        new_column_names = ['m_present_time']
+        new_column_names.extend(get_vars)
+        self.mission_data.df_fli.columns = new_column_names
         self.mission_data.df_fli['m_present_time'] = pd.to_datetime(self.mission_data.df_fli['m_present_time'], unit='s')
 
         # Remove data with erroneous dates
@@ -147,6 +68,9 @@ class FlightProcessor:
         Returns:
             xr.Dataset: The converted Dataset from the flight DataFrame.
         """
+        # Check for non unique columns
+        if not self.mission_data.df_fli.columns.is_unique:
+            raise ValueError("The DataFrame has non-unique columns.", self.mission_data.df_fli.columns)
         self.mission_data.ds_fli = xr.Dataset.from_dataframe(self.mission_data.df_fli)
 
 
@@ -187,6 +111,6 @@ class FlightProcessor:
         print_time('Processing Flight Data')
         self.load_flight()
         self.convert_fli_df_to_ds()
-        self.add_flight_attrs()
+        # self.mission_data.add_flight_attrs()
         self.format_flight_ds()
         print_time('Finised Processing Flight Data')

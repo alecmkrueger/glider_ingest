@@ -6,6 +6,7 @@ import gsw
 from attrs import define
 
 from glider_ingest.MissionData import MissionData
+from glider_ingest.variable import Variable
 from glider_ingest.utils import print_time
 
 @define
@@ -25,154 +26,7 @@ class ScienceProcessor:
 
     mission_data: MissionData
 
-
-    def add_sci_attrs(self) -> xr.Dataset:
-        """
-        Add metadata attributes to the variables in the science Dataset.
-        Attributes include accuracy, precision, units, and standard names.
-        """
-        variables = list(self.mission_data.ds_sci.data_vars)
-        # Define variable attributes
-        self.mission_data.ds_sci['platform'].attrs = {'ancillary_variables': ' ',
-        'comment': ' ',
-        'id': self.mission_data.glider_id,
-        'instruments': 'instrument_ctd',
-        'long_name': 'Slocum Glider '+ self.mission_data.glider_id,
-        'type': 'platform',
-        'wmo_id': self.mission_data.wmo_id,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.mission_data.ds_sci['sci_water_pressure'].attrs = {'accuracy': 0.01,
-        'ancillary_variables': ' ',
-        'axis': 'Z',
-        'bytes': 4,
-        'comment': 'Alias for sci_water_pressure, multiplied by 10 to convert from bar to dbar',
-        'instrument': 'instrument_ctd',
-        'long_name': 'CTD Pressure',
-        'observation_type': 'measured',
-        'platform': 'platform',
-        'positive': 'down',
-        'precision': 0.01,
-        'reference_datum': 'sea-surface',
-        'resolution': 0.01,
-        'source_sensor': 'sci_water_pressure',
-        'standard_name': 'sea_water_pressure',
-        'units': 'bar',
-        'valid_max': 2000.0,
-        'valid_min': 0.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.mission_data.ds_sci['sci_water_temp'].attrs = {'accuracy': 0.004,
-        'ancillary_variables': ' ',
-        'bytes': 4,
-        'instrument': 'instrument_ctd',
-        'long_name': 'Temperature',
-        'observation_type': 'measured',
-        'platform': 'platform',
-        'precision': 0.001,
-        'resolution': 0.001,
-        'standard_name': 'sea_water_temperature',
-        'units': 'Celsius',
-        'valid_max': 40.0,
-        'valid_min': -5.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.mission_data.ds_sci['sci_water_cond'].attrs = {'accuracy': 0.001,
-        'ancillary_variables': ' ',
-        'bytes': 4,
-        'instrument': 'instrument_ctd',
-        'long_name': 'sci_water_cond',
-        'observation_type': 'measured',
-        'platform': 'platform',
-        'precision': 1e-05,
-        'resolution': 1e-05,
-        'standard_name': 'sea_water_electrical_conductivity',
-        'units': 'S m-1',
-        'valid_max': 10.0,
-        'valid_min': 0.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.mission_data.ds_sci['sci_water_sal'].attrs = {'accuracy': ' ',
-        'ancillary_variables': ' ',
-        'instrument': 'instrument_ctd',
-        'long_name': 'Salinity',
-        'observation_type': 'calculated',
-        'platform': 'platform',
-        'precision': ' ',
-        'resolution': ' ',
-        'standard_name': 'sea_water_practical_salinity',
-        'units': '1',
-        'valid_max': 40.0,
-        'valid_min': 0.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.mission_data.ds_sci['sci_water_dens'].attrs = {'accuracy': ' ',
-        'ancillary_variables': ' ',
-        'instrument': 'instrument_ctd',
-        'long_name': 'Density',
-        'observation_type': 'calculated',
-        'platform': 'platform',
-        'precision': ' ',
-        'resolution': ' ',
-        'standard_name': 'sea_water_density',
-        'units': 'kg m-3',
-        'valid_max': 1040.0,
-        'valid_min': 1015.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        if 'sci_flbbcd_bb_units' in variables:
-            self.mission_data.ds_sci['sci_flbbcd_bb_units'].attrs = {'long_name':'science turbidity', 'standard_name':'backscatter', 'units':'nodim'}
-            self.mission_data.ds_sci['sci_flbbcd_bb_units'].attrs = {'accuracy': ' ',
-            'ancillary_variables': ' ',
-            'instrument': 'instrument_flbbcd',
-            'long_name': 'Turbidity',
-            'observation_type': 'calculated',
-            'platform': 'platform',
-            'precision': ' ',
-            'resolution': ' ',
-            'standard_name': 'sea_water_turbidity',
-            'units': '1',
-            'valid_max': 1.0,
-            'valid_min': 0.0,
-            'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-            self.mission_data.ds_sci['sci_flbbcd_cdom_units'].attrs = {'accuracy': ' ',
-            'ancillary_variables': ' ',
-            'instrument': 'instrument_flbbcd',
-            'long_name': 'CDOM',
-            'observation_type': 'calculated',
-            'platform': 'platform',
-            'precision': ' ',
-            'resolution': ' ',
-            'standard_name': 'concentration_of_colored_dissolved_organic_matter_in_sea_water',
-            'units': 'ppb',
-            'valid_max': 50.0,
-            'valid_min': 0.0,
-            'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-            self.mission_data.ds_sci['sci_flbbcd_chlor_units'].attrs = {'accuracy': ' ',
-            'ancillary_variables': ' ',
-            'instrument': 'instrument_flbbcd',
-            'long_name': 'Chlorophyll_a',
-            'observation_type': 'calculated',
-            'platform': 'platform',
-            'precision': ' ',
-            'resolution': ' ',
-            'standard_name': 'mass_concentration_of_chlorophyll_a_in_sea_water',
-            'units': '\u03BCg/L',
-            'valid_max': 10.0,
-            'valid_min': 0.0,
-            'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-
-        if 'sci_oxy4_oxygen' in variables:
-            self.mission_data.ds_sci['sci_oxy4_oxygen'].attrs = {'accuracy': ' ',
-            'ancillary_variables': ' ',
-            'instrument': 'instrument_ctd_modular_do_sensor',
-            'long_name': 'oxygen',
-            'observation_type': 'calculated',
-            'platform': 'platform',
-            'precision': ' ',
-            'resolution': ' ',
-            'standard_name': 'moles_of_oxygen_per_unit_mass_in_sea_water',
-            'units': '\u03BCmol/kg',
-            'valid_max': 500.0,
-            'valid_min': 0.0,
-            'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-
-
-    def get_sci_vars(self, variables: list):
+    def filter_sci_vars(self, variables: list):
         """
         Determine the subset of science variables to process based on their presence.
 
@@ -185,20 +39,20 @@ class ScienceProcessor:
         -------
         list
             A list of science variables that are present and should be processed.
-        """
-        # Define subsets of variables based on the presence of specific keys
-        if 'sci_oxy4_oxygen' in variables and 'sci_flbbcd_bb_units' in variables:
-            present_variables = ['sci_flbbcd_bb_units', 'sci_flbbcd_cdom_units', 'sci_flbbcd_chlor_units',
-                                 'sci_water_pressure', 'sci_water_temp', 'sci_water_cond', 'sci_oxy4_oxygen']
-        elif 'sci_oxy4_oxygen' in variables and 'sci_flbbcd_bb_units' not in variables:
-            present_variables = ['sci_water_pressure', 'sci_water_temp', 'sci_water_cond', 'sci_oxy4_oxygen']
-        elif 'sci_oxy4_oxygen' not in variables and 'sci_flbbcd_bb_units' in variables:
-            present_variables = ['sci_flbbcd_bb_units', 'sci_flbbcd_cdom_units', 'sci_flbbcd_chlor_units',
-                                 'sci_water_pressure', 'sci_water_temp', 'sci_water_cond']
-        else:
-            present_variables = ['sci_water_pressure', 'sci_water_temp', 'sci_water_cond']
-
-        return present_variables
+        """        
+        # If 'sci_oxy4_oxygen' is not present, remove its data_source_name from the list
+        if 'sci_oxy4_oxygen' not in variables:
+            self.mission_data.mission_vars['sci_oxy4_oxygen'].data_source_name = ''
+                
+        if 'sci_flbbcd_bb_units' not in variables:
+            self.mission_data.mission_vars['sci_flbbcd_bb_units'].data_source_name = ''
+        
+        if 'sci_flbbcd_cdom_units' not in variables:
+            self.mission_data.mission_vars['sci_flbbcd_cdom_units'].data_source_name = ''
+            
+        if 'sci_flbbcd_chlor_units' not in variables:
+            self.mission_data.mission_vars['sci_flbbcd_chlor_units'].data_source_name = ''
+                    
 
 
     def load_science(self):
@@ -219,9 +73,11 @@ class ScienceProcessor:
 
         # Extract variable names and filter relevant variables
         all_variables = dbd.parameterNames['sci']
-        present_variables = self.get_sci_vars(all_variables)
+        self.filter_sci_vars(all_variables)
+        present_variables = ([var.data_source_name for var in self.mission_data.mission_vars.values() if var.data_source_name.startswith('sci_')])
+        present_variables = set(present_variables)
         vars = dbd.get_sync(*present_variables)
-
+        
         # Convert to a DataFrame and set column names
         self.mission_data.df_sci = pd.DataFrame(vars).T
         column_names = ['sci_m_present_time']
@@ -333,7 +189,6 @@ class ScienceProcessor:
         # Load science data and perform all transformations
         self.load_science()
         self.convert_sci_df_to_ds()
-        self.add_sci_attrs()
+        # self.mission_data.add_science_attrs()
         self.format_sci_ds()
-
         print_time('Finished Processing Science Data')

@@ -9,4 +9,5 @@ To install using pip:
 .. toctree::
    :maxdepth: 3
 
+   examples/index
 

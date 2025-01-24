@@ -1,10 +1,13 @@
+import numpy as np
 import pandas as pd
 import xarray as xr
 from pathlib import Path
 from attrs import define, field
 import datetime
+import uuid
 
-from glider_ingest.utils import find_nth, invert_dict
+from glider_ingest.utils import find_nth, get_polygon_coords
+from glider_ingest.variable import Variable
 
 
 @define
@@ -31,6 +34,7 @@ class MissionData:
         glider_ids (dict): Mapping of glider IDs to names.
         wmo_ids (dict): Mapping of glider IDs to WMO IDs.
         wmo_id (str): WMO ID for the glider.
+        mission_vars (dict): Dictonary of mission variables.
 
     Post-Initialization Attributes:
         fli_files_loc (Path): Path to flight logs.
@@ -61,6 +65,7 @@ class MissionData:
     glider_ids: dict = field(default={'199': 'Dora', '307': 'Reveille', '308': 'Howdy', '540': 'Stommel', '541': 'Sverdrup', '1148': 'unit_1148'})
     wmo_ids: dict = field(default={'199': 'unknown', '307': '4801938', '308': '4801915', '540': '4801916', '541': '4801924', '1148': '4801915'})
     wmo_id: str = field(default=None)
+    mission_vars: dict|None = field(default={})
 
     # Post init variables
     fli_files_loc: Path = field(init=False)
@@ -85,6 +90,20 @@ class MissionData:
         flight card logs, science card logs, and their respective caches.
         """
         self.get_file_locs()
+        self.init_base_variables()
+    
+    def init_base_variables(self):
+        """
+        Initializes the base variables.
+        """
+        from glider_ingest.variable import Variable
+        import glider_ingest.dataset_attrs as attrs
+
+        # Get all Variable objects dynamically
+        variables_list = [getattr(attrs, attr) for attr in dir(attrs) 
+                        if isinstance(getattr(attrs, attr), Variable)]
+        
+        self.add_variables(variables_list)
 
     def setup(self):
         """
@@ -151,6 +170,25 @@ class MissionData:
         name = self._extract_full_filename(file)
         self._parse_mission_year(name)
         self._parse_and_validate_glider_name(name)
+        
+    def add_variables(self,variables:list[Variable]):
+        """Adds variables to the mission data.
+
+        Args:
+            variables (list): list of Variable objects to add to the mission data.
+        """
+        # Validate list of variables are of type Variable
+        if all(isinstance(var, str) for var in variables):
+            # Convert strings to Variable objects for basic implementation
+            variables = [Variable(data_source_name=var) for var in variables]
+        if not all(isinstance(var, Variable) for var in variables):
+            raise TypeError("All elements in the list must be of type Variable or string.")
+        # Add variables to mission_vars dictionary
+        print(f"Adding variables: {[var.data_source_name for var in variables]}")
+        variables_dict = {var.data_source_name: var for var in variables}
+        self.mission_vars.update(variables_dict)
+        
+        
 
     def _get_sample_file(self):
         """
@@ -259,19 +297,6 @@ class MissionData:
             self.wmo_id = self.wmo_ids[self.glider_id]
 
     def get_files(self, files_loc: Path, extension: str):
-        """
-        Retrieves files with a specific extension from the specified directory.
-
-        Args:
-            files_loc (Path): The directory where the files are located.
-            extension (str): The file extension to search for.
-
-        Returns:
-            list: A list of file paths matching the extension.
-
-        Raises:
-            ValueError: If no files are found or the directory does not exist.
-        """
         if files_loc.exists():
             try:
                 files = list(files_loc.rglob(f'*.{extension.lower()}'))
@@ -286,3 +311,96 @@ class MissionData:
             return files
         else:
             raise ValueError(f'Path not found: {files_loc.resolve()}')
+        
+    def add_global_attrs(self):
+        self.ds_mission.attrs = {'Conventions': 'CF-1.6, COARDS, ACDD-1.3',
+        'acknowledgment': ' ',
+        'cdm_data_type': 'Profile',
+        'comment': 'time is the ctd_time from sci_m_present_time, m_time is the gps_time from m_present_time, g_time and g_pres are the grided time and pressure',
+        'contributor_name': 'Steven F. DiMarco',
+        'contributor_role': ' ',
+        'creator_email': 'sakib@tamu.edu, gexiao@tamu.edu',
+        'creator_institution': 'Texas A&M University, Geochemical and Environmental Research Group',
+        'creator_name': 'Sakib Mahmud, Xiao Ge',
+        'creator_type': 'persons',
+        'creator_url': 'https://gerg.tamu.edu/',
+        'date_created': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S'),
+        'date_issued': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S'),
+        'date_metadata_modified': '2023-09-15',
+        'date_modified': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S'),
+        'deployment': ' ',
+        'featureType': 'profile',
+        'geospatial_bounds_crs': 'EPSG:4326',
+        'geospatial_bounds_vertical_crs': 'EPSG:5831',
+        'geospatial_lat_resolution': "{:.4e}".format(abs(np.nanmean(np.diff(self.ds_mission.latitude))))+ ' degree',
+        'geospatial_lat_units': 'degree_north',
+        'geospatial_lon_resolution': "{:.4e}".format(abs(np.nanmean(np.diff(self.ds_mission.longitude))))+ ' degree',
+        'geospatial_lon_units': 'degree_east',
+        'geospatial_vertical_positive': 'down',
+        'geospatial_vertical_resolution': ' ',
+        'geospatial_vertical_units': 'EPSG:5831',
+        'infoUrl': 'https://gerg.tamu.edu/',
+        'institution': 'Texas A&M University, Geochemical and Environmental Research Group',
+        'instrument': 'In Situ/Laboratory Instruments > Profilers/Sounders > CTD',
+        'instrument_vocabulary': 'NASA/GCMD Instrument Keywords Version 8.5',
+        'ioos_regional_association': 'GCOOS-RA',
+        'keywords': 'Oceans > Ocean Pressure > Water Pressure, Oceans > Ocean Temperature > Water Temperature, Oceans > Salinity/Density > Conductivity, Oceans > Salinity/Density > Density, Oceans > Salinity/Density > Salinity',
+        'keywords_vocabulary': 'NASA/GCMD Earth Sciences Keywords Version 8.5',
+        'license': 'This data may be redistributed and used without restriction.  Data provided as is with no expressed or implied assurance of quality assurance or quality control',
+        'metadata_link': ' ',
+        'naming_authority': 'org.gcoos.gandalf',
+        'ncei_template_version': 'NCEI_NetCDF_Trajectory_Template_v2.0',
+        'platform': 'In Situ Ocean-based Platforms > AUVS > Autonomous Underwater Vehicles',
+        'platform_type': 'Slocum Glider',
+        'platform_vocabulary': 'NASA/GCMD Platforms Keywords Version 8.5',
+        'processing_level': 'Level 0',
+        'product_version': '0.0',
+        'program': ' ',
+        'project': ' ',
+        'publisher_email': 'sdimarco@tamu.edu',
+        'publisher_institution': 'Texas A&M University, Geochemical and Environmental Research Group',
+        'publisher_name': 'Steven F. DiMarco',
+        'publisher_url': 'https://gerg.tamu.edu/',
+        'references': ' ',
+        'sea_name': 'Gulf of Mexico',
+        'standard_name_vocabulary': 'CF Standard Name Table v27',
+        'summary': 'Merged dataset for GERG future usage.',
+        'time_coverage_resolution': ' ',
+        'wmo_id': self.wmo_id,
+        'uuid': str(uuid.uuid4()),
+        'history': 'dbd and ebd files transferred from dbd2asc on 2023-09-15, merged into single netCDF file on '+pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S'),
+        'title': self.mission_title,
+        'source': 'Observational Slocum glider data from source ebd and dbd files',
+        'geospatial_lat_min': str(np.nanmin(self.ds_mission.latitude[np.where(self.ds_mission.latitude.values<29.5)].values)),
+        'geospatial_lat_max': str(np.nanmax(self.ds_mission.latitude[np.where(self.ds_mission.latitude.values<29.5)].values)),
+        'geospatial_lon_min': str(np.nanmin(self.ds_mission.longitude.values)),
+        'geospatial_lon_max': str(np.nanmax(self.ds_mission.longitude.values)),
+        'geospatial_bounds': get_polygon_coords(self.ds_mission),
+        'geospatial_vertical_min': str(np.nanmin(self.ds_mission.depth[np.where(self.ds_mission.depth>0)].values)),
+        'geospatial_vertical_max': str(np.nanmax(self.ds_mission.depth.values)),
+        'time_coverage_start': str(self.ds_mission.time[-1].values)[:19],
+        'time_coverage_end': str(self.ds_mission.m_time[-1].values)[:19],
+        'time_coverage_duration': 'PT'+str((self.ds_mission.m_time[-1].values - self.ds_mission.time[-1].values) / np.timedelta64(1, 's'))+'S'}
+    
+
+    def add_attrs(self):
+        """Adds flight, science, and mission attributes to the dataset."""
+        # Get the mission dataset data_vars
+        variables = list(self.ds_mission.data_vars)
+        for var in self.mission_vars.values():
+            if var.short_name in variables:
+                self.ds_mission[var.short_name].attrs = var.to_dict()
+        
+        # Add platform attributes                
+        platform = Variable(
+            ancillary_variables='',
+            comment='',
+            id=self.glider_id,
+            instruments='instrument_ctd',
+            long_name='Slocum Glider '+ self.glider_id,
+            type='platform',
+            wmo_id=self.wmo_id,
+        )
+        self.ds_sci['platform'].attrs = platform.to_dict()
+        self.add_global_attrs()
+        

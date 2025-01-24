@@ -6,7 +6,9 @@ Module containing utility functions for the package.
 import numpy as np
 import xarray as xr
 import datetime
-from .Gridder import Gridder
+from functools import wraps
+from time import time
+from .gridder import Gridder
 
 def print_time(message: str) -> None:
     """
@@ -27,6 +29,26 @@ def print_time(message: str) -> None:
     whole_message = f'{message}: {current_time}'
     # Print the final message
     print(whole_message)
+    
+
+def timing(f):
+    """Time a function.
+
+    Args:
+        f (function): function to time
+
+    Returns:
+        wrapper: prints the time it took to run the function
+    """
+    @wraps(f)
+    def wrap(*args, **kw):
+        ts = time()
+        result = f(*args, **kw)
+        te = time()
+        print('func:%r args:[%r, %r] took: %2.4f sec' % \
+          (f.__name__, args, kw, te-ts))
+        return result
+    return wrap
 
 def find_nth(haystack: str, needle: str, n: int) -> int:
     """
@@ -137,3 +159,13 @@ def get_polygon_coords(ds_mission: xr.Dataset) -> str:
 
     # Combine points into WKT polygon format
     return f"POLYGON (({polygon_1}, {polygon_2}, {polygon_3}, {polygon_4}, {polygon_5}))"
+
+def get_wmo_id(glider_id: str) -> str:
+    """
+    Extract the WMO ID from a glider ID.
+    """
+    if isinstance(glider_id, int):
+        glider_id = str(glider_id)
+    glider_ids = {'199': 'Dora', '307': 'Reveille', '308': 'Howdy', '540': 'Stommel', '541': 'Sverdrup', '1148': 'unit_1148'}
+    wmo_ids = {'199': 'unknown', '307': '4801938', '308': '4801915', '540': '4801916', '541': '4801924', '1148': '4801915'}
+    return wmo_ids[glider_id]
