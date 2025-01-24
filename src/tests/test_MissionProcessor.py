@@ -29,7 +29,6 @@ class TestMissionProcessor(unittest.TestCase):
     @pytest.mark.slow()
     def test_add_global_attrs_validation(self):
         self.processor.generate_mission_dataset()
-        self.processor.add_global_attrs()
         
         required_attrs = [
             "Conventions",

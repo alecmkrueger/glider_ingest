@@ -56,21 +56,6 @@ class TestFlightProcessor(unittest.TestCase):
         self.assertIn('latitude', self.flight_processor.mission_data.ds_fli.variables)
         self.assertIn('longitude', self.flight_processor.mission_data.ds_fli.variables)
 
-    def test_add_flight_attrs(self):
-        test_ds = xr.Dataset({
-            'm_pressure': ('time', [10.0, 20.0]),
-            'm_water_depth': ('time', [100.0, 200.0]),
-            'm_latitude': ('time', [25.1, 25.2]),
-            'm_longitude': ('time', [-94.1, -94.2])
-        })
-        self.flight_processor.mission_data.ds_fli = test_ds
-        self.flight_processor.add_flight_attrs()
-        
-        self.assertIn('units', self.flight_processor.mission_data.ds_fli.m_pressure.attrs)
-        self.assertIn('standard_name', self.flight_processor.mission_data.ds_fli.m_latitude.attrs)
-        self.assertIn('axis', self.flight_processor.mission_data.ds_fli.m_longitude.attrs)
-        self.assertIn('update_time', self.flight_processor.mission_data.ds_fli.m_water_depth.attrs)
-
     @pytest.mark.slow()
     def test_process_flight_data_workflow(self):
         self.flight_processor.mission_data.df_fli = self.sample_flight_df

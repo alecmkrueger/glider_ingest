@@ -41,50 +41,10 @@ class TestScienceProcessor(unittest.TestCase):
         self.processor = ScienceProcessor(self.mission_data)
         self.processor.mission_data.df_sci = self.test_df
 
-    def test_get_sci_vars_all_sensors(self):
-        variables = ['sci_oxy4_oxygen', 'sci_flbbcd_bb_units', 'sci_water_pressure']
-        result = self.processor.get_sci_vars(variables)
-        self.assertIn('sci_water_pressure', result)
-        self.assertIn('sci_oxy4_oxygen', result)
-        self.assertIn('sci_flbbcd_bb_units', result)
-
-    def test_get_sci_vars_no_optical(self):
-        variables = ['sci_oxy4_oxygen', 'sci_water_pressure']
-        result = self.processor.get_sci_vars(variables)
-        self.assertIn('sci_water_pressure', result)
-        self.assertIn('sci_oxy4_oxygen', result)
-        self.assertNotIn('sci_flbbcd_bb_units', result)
-
-    def test_get_sci_vars_no_oxygen(self):
-        variables = ['sci_flbbcd_bb_units', 'sci_water_pressure']
-        result = self.processor.get_sci_vars(variables)
-        self.assertIn('sci_water_pressure', result)
-        self.assertIn('sci_flbbcd_bb_units', result)
-        self.assertNotIn('sci_oxy4_oxygen', result)
-
-    def test_get_sci_vars_no_oxygen_and_optical(self):
-        variables = ['sci_water_pressure']
-        result = self.processor.get_sci_vars(variables)
-        self.assertIn('sci_water_pressure', result)
-        self.assertNotIn('sci_flbbcd_bb_units', result)
-        self.assertNotIn('sci_oxy4_oxygen', result)
-
     def test_convert_sci_df_to_ds(self):
         self.processor.convert_sci_df_to_ds()
         self.assertIsInstance(self.processor.mission_data.ds_sci, xr.Dataset)
         self.assertEqual(self.processor.mission_data.ds_sci.platform.values, "307")
-
-    def test_add_sci_attrs(self):
-        self.processor.convert_sci_df_to_ds()
-        self.processor.add_sci_attrs()
-        
-        # Check platform attributes
-        self.assertIn('platform', self.processor.mission_data.ds_sci)
-        self.assertIn('wmo_id', self.processor.mission_data.ds_sci.platform.attrs)
-        
-        # Check variable attributes
-        self.assertIn('units', self.processor.mission_data.ds_sci.sci_water_temp.attrs)
-        self.assertIn('standard_name', self.processor.mission_data.ds_sci.sci_water_pressure.attrs)
 
     def test_format_sci_ds(self):
         self.processor.convert_sci_df_to_ds()

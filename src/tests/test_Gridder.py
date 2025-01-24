@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import pandas as pd
 import xarray as xr
-from glider_ingest.Gridder import Gridder
+from glider_ingest.gridder import Gridder
 
 class TestGridder(unittest.TestCase):
     def setUp(self):
