@@ -68,9 +68,6 @@ class FlightProcessor:
         Returns:
             xr.Dataset: The converted Dataset from the flight DataFrame.
         """
-        # Check for non unique columns
-        if not self.mission_data.df_fli.columns.is_unique:
-            raise ValueError("The DataFrame has non-unique columns.", self.mission_data.df_fli.columns)
         self.mission_data.ds_fli = xr.Dataset.from_dataframe(self.mission_data.df_fli)
 
 

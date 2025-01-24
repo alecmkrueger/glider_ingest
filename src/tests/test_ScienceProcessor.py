@@ -41,6 +41,10 @@ class TestScienceProcessor(unittest.TestCase):
         self.processor = ScienceProcessor(self.mission_data)
         self.processor.mission_data.df_sci = self.test_df
 
+
+    def test_filter_sci_vars_missing_vars(self):
+        self.processor.filter_sci_vars([''])
+
     def test_convert_sci_df_to_ds(self):
         self.processor.convert_sci_df_to_ds()
         self.assertIsInstance(self.processor.mission_data.ds_sci, xr.Dataset)

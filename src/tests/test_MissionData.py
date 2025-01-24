@@ -27,6 +27,13 @@ class TestMissionData(unittest.TestCase):
         self.assertEqual(self.mission_data.sci_files_loc.name, "logs")
         self.assertIn("Flight_card", str(self.mission_data.fli_cache_loc))
         self.assertIn("Science_card", str(self.mission_data.sci_cache_loc))
+        
+    def test_add_variables(self):
+        self.mission_data.add_variables(['water','air'])
+    
+    def test_add_variables_not_all_str_or_variable(self):
+        with self.assertRaises(TypeError):
+            self.mission_data.add_variables(['water','air',1])
 
     def test_get_mission_date_range_default(self):
         self.mission_data.get_mission_date_range()

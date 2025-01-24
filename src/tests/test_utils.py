@@ -3,7 +3,8 @@ import numpy as np
 import xarray as xr
 from glider_ingest.utils import (
     print_time, find_nth, invert_dict, 
-    add_gridded_data, get_polygon_coords
+    add_gridded_data, get_polygon_coords,
+    timing,get_wmo_id
 )
 
 class TestUtils(unittest.TestCase):
@@ -95,4 +96,46 @@ class TestUtils(unittest.TestCase):
         test_dict = {"a": 1, "b": 1, "c": 2}
         inverted = invert_dict(test_dict)
         self.assertEqual(len(inverted), 2)  # Only unique values become keys
+
+    def test_timing_decorator(self):
+        import io
+        import sys
+        
+        # Create a test function with the timing decorator
+        @timing
+        def test_func(x):
+            return x * 2
+        
+        # Capture print output
+        captured_output = io.StringIO()
+        sys.stdout = captured_output
+        
+        # Run the decorated function
+        result = test_func(5)
+        
+        sys.stdout = sys.__stdout__
+        output = captured_output.getvalue()
+        
+        # Verify function execution
+        self.assertEqual(result, 10)
+        # Verify timing output format
+        self.assertIn('func:', output)
+        self.assertIn('took:', output)
+        self.assertIn('sec', output)
+
+    def test_get_wmo_id(self):
+        # Test string input
+        self.assertEqual(get_wmo_id('307'), '4801938')
+        self.assertEqual(get_wmo_id('308'), '4801915')
+        self.assertEqual(get_wmo_id('540'), '4801916')
+        
+        # Test integer input
+        self.assertEqual(get_wmo_id(541), '4801924')
+        
+        # Test unknown glider
+        self.assertEqual(get_wmo_id('199'), 'unknown')
+        
+        # Test unit glider
+        self.assertEqual(get_wmo_id('1148'), '4801915')
+
 
