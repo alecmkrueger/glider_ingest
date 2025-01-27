@@ -1,6 +1,8 @@
 import unittest
 import numpy as np
 import xarray as xr
+import io
+import sys
 from glider_ingest.utils import (
     print_time, find_nth, invert_dict, 
     get_polygon_coords,
@@ -57,8 +59,6 @@ class TestUtils(unittest.TestCase):
         self.assertIn("z = [1, 2, 3]", result)
         
         # Test print output
-        import io
-        import sys
         captured_output = io.StringIO()
         sys.stdout = captured_output
         
