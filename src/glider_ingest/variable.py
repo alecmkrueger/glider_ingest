@@ -35,6 +35,11 @@ class Variable:
     update_time: str|None = field(default=None)
     coordinate_reference_frame: str|None = field(default=None)
     
+    source: str|None = field(default=None)  # Where the gridded variable came from
+    
+    # Variable operation attributes
+    to_grid: bool = field(default=False)  # If you want the variable to be gridded: True
+    
     # Glider specific attributes
     id: str|None = field(default=None)
     wmo_id: str|None = field(default=None)
@@ -59,11 +64,22 @@ class Variable:
         if self.short_name is None:
             self.short_name = self.data_source_name
             
+    def _filter_out_keys(self):
+        """
+        Filter out keys from the Variable object that are None.
+        """
+        # Return the dictionary sorted by key and filtered out None values  
+        
+        # Convert to_grid to string for JSON serialization
+        self.to_grid = f'{self.to_grid}'
+        
+        return {key:value for key,value in asdict(self).items() if value is not None}
+            
     def to_dict(self):
         """
         Convert the Variable object to a dictionary, sorted by key and filtered out None values.
         """
         # Return the dictionary sorted by key and filtered out None values
-        return dict(sorted({key:value for key,value in asdict(self).items() if value is not None}.items()))
+        return dict(sorted(self._filter_out_keys().items()))
 
 

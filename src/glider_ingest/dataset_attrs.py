@@ -127,6 +127,7 @@ sci_water_temp = Variable(
     units='Celsius',
     valid_max=40.0,
     valid_min=-5.0,
+    to_grid=True
 )
 
 sci_water_cond = Variable(
@@ -145,10 +146,11 @@ sci_water_cond = Variable(
     units='S m-1',
     valid_max=10.0,
     valid_min=0.0,
+    to_grid=True
 )
 
 sci_water_sal = Variable(
-    data_source_name=' ',
+    data_source_name='calculated_salinity',
     short_name='salinity',
     accuracy='',
     ancillary_variables='',
@@ -162,10 +164,11 @@ sci_water_sal = Variable(
     units='1',
     valid_max=40.0,
     valid_min=0.0,
+    to_grid=True
 )
 
 sci_water_dens = Variable(
-    data_source_name=' ',
+    data_source_name='calculated_density',
     short_name='density',
     accuracy='',
     ancillary_variables='',
@@ -179,6 +182,7 @@ sci_water_dens = Variable(
     units='kg m-3',
     valid_max=1040.0,
     valid_min=1015.0,
+    to_grid=True
 )
 
 sci_flbbcd_bb_units = Variable(
@@ -196,6 +200,7 @@ sci_flbbcd_bb_units = Variable(
     units='1',
     valid_max=1.0,
     valid_min=0.0,
+    to_grid=True
 )
 
 sci_flbbcd_cdom_units = Variable(
@@ -213,6 +218,7 @@ sci_flbbcd_cdom_units = Variable(
     units='ppb',
     valid_max=50.0,
     valid_min=0.0,
+    to_grid=True
 )
 
 sci_flbbcd_chlor_units = Variable(
@@ -230,6 +236,7 @@ sci_flbbcd_chlor_units = Variable(
     units='\u03BCg/L',
     valid_max=10.0,
     valid_min=0.0,
+    to_grid=True
 )
 
 sci_oxy4_oxygen = Variable(
@@ -247,4 +254,5 @@ sci_oxy4_oxygen = Variable(
     units='\u03BCmol/kg',
     valid_max=500.0,
     valid_min=0.0,
+    to_grid=True
 )
