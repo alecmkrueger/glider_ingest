@@ -117,7 +117,11 @@ class Gridder:
         self.xx, self.yy = np.shape(self.grid_pres)  # Dimensions of the grid.
 
         # Initialize arrays for gridded variables.
-        var_names = ['int_temp', 'int_salt', 'int_cond', 'int_dens', 'int_turb', 'int_cdom', 'int_chlo', 'int_oxy4']
+        var_names = []
+        for varname in self.variable_names:
+            if 'to_grid' in self.ds[varname].attrs.keys():
+                if self.ds[varname].attrs['to_grid']:
+                    var_names.extend([f'int_{varname}'])
         self.data_arrays = {}
 
         for var in var_names:
@@ -132,44 +136,50 @@ class Gridder:
         This method assigns long names, units, valid ranges, and other metadata to the
         gridded dataset variables for better interpretation and standardization.
         '''
-        self.ds_gridded['g_temp'].attrs = {'long_name': 'Gridded Temperature',
-        'observation_type': 'calculated',
-        'source': 'temperature from sci_water_temp',
-        'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
-        'standard_name': 'sea_water_temperature',
-        'units': 'Celsius',
-        'valid_max': 40.0,
-        'valid_min': -5.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.ds_gridded['g_salt'].attrs = {'long_name': 'Gridded Salinity',
-        'observation_type': 'calculated',
-        'source': 'salinity from sci_water_sal',
-        'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
-        'standard_name': 'sea_water_practical_salinity',
-        'units': '1',
-        'valid_max': 40.0,
-        'valid_min': 0.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.ds_gridded['g_cond'].attrs = {'long_name': 'Gridded Conductivity',
-        'observation_type': 'calculated',
-        'source': 'conductivity from sci_water_cond',
-        'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
-        'standard_name': 'sea_water_electrical_conductivity',
-        'units': 'S m-1',
-        'valid_max': 10.0,
-        'valid_min': 0.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.ds_gridded['g_dens'].attrs = {'long_name': 'Gridded Density',
-        'observation_type': 'calculated',
-        'source': 'density from sci_water_dens',
-        'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
-        'standard_name': 'sea_water_density',
-        'units': 'kg m-3',
-        'valid_max': 1040.0,
-        'valid_min': 1015.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
+        from glider_ingest.gridded_attrs import generate_variables
+        variables = generate_variables(self.interval_h,self.interval_p)
+        for var_short_name,variable in variables.items():
+            if var_short_name in self.ds_gridded.data_vars.keys():
+                self.ds_gridded[var_short_name].attrs = variable.to_dict()
+        
+        # self.ds_gridded['g_temperature'].attrs = {'long_name': 'Gridded Temperature',
+        # 'observation_type': 'calculated',
+        # 'source': 'temperature from sci_water_temp',
+        # 'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
+        # 'standard_name': 'sea_water_temperature',
+        # 'units': 'Celsius',
+        # 'valid_max': 40.0,
+        # 'valid_min': -5.0,
+        # 'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
+        # self.ds_gridded['g_salinity'].attrs = {'long_name': 'Gridded Salinity',
+        # 'observation_type': 'calculated',
+        # 'source': 'salinity from sci_water_sal',
+        # 'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
+        # 'standard_name': 'sea_water_practical_salinity',
+        # 'units': '1',
+        # 'valid_max': 40.0,
+        # 'valid_min': 0.0,
+        # 'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
+        # self.ds_gridded['g_conductivity'].attrs = {'long_name': 'Gridded Conductivity',
+        # 'observation_type': 'calculated',
+        # 'source': 'conductivity from sci_water_cond',
+        # 'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
+        # 'standard_name': 'sea_water_electrical_conductivity',
+        # 'units': 'S m-1',
+        # 'valid_max': 10.0,
+        # 'valid_min': 0.0,
+        # 'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
+        # self.ds_gridded['g_density'].attrs = {'long_name': 'Gridded Density',
+        # 'observation_type': 'calculated',
+        # 'source': 'density from sci_water_dens',
+        # 'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
+        # 'standard_name': 'sea_water_density',
+        # 'units': 'kg m-3',
+        # 'valid_max': 1040.0,
+        # 'valid_min': 1015.0,
+        # 'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
         # if 'turb' in self.variable_names:
-        #     self.ds_gridded['g_turb'].attrs = {'long_name': 'Gridded Turbidity',
+        #     self.ds_gridded['g_turbidity'].attrs = {'long_name': 'Gridded Turbidity',
         #     'observation_type': 'calculated',
         #     'source': 'turbidity from sci_flbbcd_bb_units',
         #     'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
@@ -189,7 +199,7 @@ class Gridder:
         #     'valid_min': 0.0,
         #     'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
         # if 'chlor' in self.variable_names:
-        #     self.ds_gridded['g_chlo'].attrs = {'long_name': 'Gridded Chlorophyll_a',
+        #     self.ds_gridded['g_chlorophyll'].attrs = {'long_name': 'Gridded Chlorophyll_a',
         #     'observation_type': 'calculated',
         #     'source': 'chlorophyll from sci_flbbcd_chlor_units',
         #     'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
@@ -198,52 +208,52 @@ class Gridder:
         #     'valid_max': 10.0,
         #     'valid_min': 0.0,
         #     'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        if 'oxygen' in self.variable_names:
-            self.ds_gridded['g_oxy4'].attrs = {'long_name': 'Gridded Oxygen',
-            'observation_type': 'calculated',
-            'source': 'oxygen from sci_oxy4_oxygen',
-            'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
-            'standard_name': 'moles_of_oxygen_per_unit_mass_in_sea_water',
-            'units': '\u03BCmol/kg',
-            'valid_max': 500.0,
-            'valid_min': 0.0,
-            'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.ds_gridded['g_hc'].attrs = {'long_name': 'Gridded Heat Content',
-        'observation_type': 'calculated',
-        'source': 'g_temp, g_dens, cp=gsw.cp_t_exact, dz='+str(self.interval_p)+'dbar',
-        'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
-        'standard_name': 'sea_water_heat_content_for_all_grids',
-        'units': 'kJ/cm^2',
-        'valid_max': 10.0,
-        'valid_min': 0.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.ds_gridded['g_phc'].attrs = {'long_name': 'Gridded Potential Heat Content',
-        'observation_type': 'calculated',
-        'source': 'g_temp, g_dens, cp=gsw.cp_t_exact, dz='+str(self.interval_p)+'dbar',
-        'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
-        'standard_name': 'sea_water_heat_content_for_grids_above_26°C',
-        'units': 'kJ/cm^2',
-        'valid_max': 10.0,
-        'valid_min': 0.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.ds_gridded['g_sp'].attrs = {'long_name': 'Gridded Spiciness',
-        'observation_type': 'calculated',
-        'source': 'g_temp, g_salt, g_pres, lon, lat, via gsw.spiciness0',
-        'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
-        'standard_name': 'spiciness_from_absolute_salinity_and_conservative_temperature_at_0dbar',
-        'units': 'kg/m^3',
-        'valid_max': 10.0,
-        'valid_min': 0.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
-        self.ds_gridded['g_depth'].attrs = {'long_name': 'Gridded Depth',
-        'observation_type': 'calculated',
-        'source': 'g_pres, lat, via gsw.z_from_p',
-        'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
-        'standard_name': 'sea_water_depth',
-        'units': 'm',
-        'valid_max': 1000.0,
-        'valid_min': 0.0,
-        'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
+        # if 'oxygen' in self.variable_names:
+        #     self.ds_gridded['g_oxygen'].attrs = {'long_name': 'Gridded Oxygen',
+        #     'observation_type': 'calculated',
+        #     'source': 'oxygen from sci_oxy4_oxygen',
+        #     'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
+        #     'standard_name': 'moles_of_oxygen_per_unit_mass_in_sea_water',
+        #     'units': '\u03BCmol/kg',
+        #     'valid_max': 500.0,
+        #     'valid_min': 0.0,
+        #     'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
+        # self.ds_gridded['g_hc'].attrs = {'long_name': 'Gridded Heat Content',
+        # 'observation_type': 'calculated',
+        # 'source': 'g_temp, g_dens, cp=gsw.cp_t_exact, dz='+str(self.interval_p)+'dbar',
+        # 'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
+        # 'standard_name': 'sea_water_heat_content_for_all_grids',
+        # 'units': 'kJ/cm^2',
+        # 'valid_max': 10.0,
+        # 'valid_min': 0.0,
+        # 'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
+        # self.ds_gridded['g_phc'].attrs = {'long_name': 'Gridded Potential Heat Content',
+        # 'observation_type': 'calculated',
+        # 'source': 'g_temp, g_dens, cp=gsw.cp_t_exact, dz='+str(self.interval_p)+'dbar',
+        # 'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
+        # 'standard_name': 'sea_water_heat_content_for_grids_above_26°C',
+        # 'units': 'kJ/cm^2',
+        # 'valid_max': 10.0,
+        # 'valid_min': 0.0,
+        # 'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
+        # self.ds_gridded['g_sp'].attrs = {'long_name': 'Gridded Spiciness',
+        # 'observation_type': 'calculated',
+        # 'source': 'g_temp, g_salt, g_pres, lon, lat, via gsw.spiciness0',
+        # 'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
+        # 'standard_name': 'spiciness_from_absolute_salinity_and_conservative_temperature_at_0dbar',
+        # 'units': 'kg/m^3',
+        # 'valid_max': 10.0,
+        # 'valid_min': 0.0,
+        # 'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
+        # self.ds_gridded['g_depth'].attrs = {'long_name': 'Gridded Depth',
+        # 'observation_type': 'calculated',
+        # 'source': 'g_pres, lat, via gsw.z_from_p',
+        # 'resolution': str(self.interval_h)+'hour and '+str(self.interval_p)+'dbar',
+        # 'standard_name': 'sea_water_depth',
+        # 'units': 'm',
+        # 'valid_max': 1000.0,
+        # 'valid_min': 0.0,
+        # 'update_time': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')}
 
     def create_gridded_dataset(self):
         """
@@ -272,11 +282,7 @@ class Gridder:
 
         Attributes:
             self.ds_gridded: The resulting gridded dataset with variables:
-                - g_temp: Gridded temperature
-                - g_salt: Gridded salinity
-                - g_cond: Gridded conductivity
-                - g_dens: Gridded density
-                - g_oxy4: Gridded oxygen (if available)
+                - gridded variables depending on the varible settings, to_grid attribute in the Variable class
                 - g_hc: Heat content in kJ cm^{-2}
                 - g_phc: Potential heat content in kJ cm^{-2}
                 - g_sp: Spiciness
@@ -304,32 +310,41 @@ class Gridder:
                         modified_pressure = pressure + 0.000000000001*rr
                         tds['pressure'][rr] = modified_pressure
                 tds['time'] = tds['pressure'].values # save new non-duplicates pressure
-                self.data_arrays['int_temp'][ttt,:] = tds.temperature.interp(time=self.int_pres)
-                self.data_arrays['int_salt'][ttt,:] = tds.salinity.interp(time=self.int_pres)
-                self.data_arrays['int_cond'][ttt,:] = tds.conductivity.interp(time=self.int_pres)
-                self.data_arrays['int_dens'][ttt,:] = tds.density.interp(time=self.int_pres)
-                if 'oxygen' in self.variable_names:
-                    self.data_arrays['int_oxy4'][ttt,:] = tds.oxygen.interp(time=self.int_pres)
+                # Interpolate to a fixed pressure grid
+                for data_array_key,value in self.data_arrays.items():
+                    if data_array_key in self.variable_names:
+                        tds_key = data_array_key.replace('int_','')
+                        self.data_arrays[data_array_key][ttt,:] = tds[tds_key].interp(time=self.int_pres)
+                # if 'oxygen' in self.variable_names:
+                #     self.data_arrays['int_oxygen'][ttt,:] = tds.oxygen.interp(time=self.int_pres)
 
         # give a dz instead of calculating the inter depth
-        sa = gsw.SA_from_SP(self.data_arrays['int_salt'], self.grid_pres, self.lon, self.lat)
-        pt = gsw.pt0_from_t(sa, self.data_arrays['int_temp'], self.grid_pres)
+        sa = gsw.SA_from_SP(self.data_arrays['int_salinity'], self.grid_pres, self.lon, self.lat)
+        pt = gsw.pt0_from_t(sa, self.data_arrays['int_temperature'], self.grid_pres)
         ct = gsw.CT_from_pt(sa, pt)
-        cp = gsw.cp_t_exact(sa, self.data_arrays['int_temp'], self.grid_pres) * 0.001 # from J/(kg*K) to kJ/(kg*°C) or use 3.85 as a constant?
+        cp = gsw.cp_t_exact(sa, self.data_arrays['int_temperature'], self.grid_pres) * 0.001 # from J/(kg*K) to kJ/(kg*°C) or use 3.85 as a constant?
         dep = gsw.z_from_p(self.grid_pres, self.lat, geo_strf_dyn_height=0, sea_surface_geopotential=0)
         spc = gsw.spiciness0(sa, ct)
 
         dz = self.interval_p
-        hc = dz*cp*self.data_arrays['int_temp']*self.data_arrays['int_dens'] # deltaZ * Cp * temperature * density in the unit as $[kJ/m^2]$ * 10**-4 to $[kJ/cm^2]$
-        phc = dz*cp*(self.data_arrays['int_temp']-26)*self.data_arrays['int_dens'] # deltaZ * Cp * temperature * density in the unit as $[kJ/m^2]$ * 10**-4 to $[kJ/cm^2]$
+        hc = dz*cp*self.data_arrays['int_temperature']*self.data_arrays['int_density'] # deltaZ * Cp * temperature * density in the unit as $[kJ/m^2]$ * 10**-4 to $[kJ/cm^2]$
+        phc = dz*cp*(self.data_arrays['int_temperature']-26)*self.data_arrays['int_density'] # deltaZ * Cp * temperature * density in the unit as $[kJ/m^2]$ * 10**-4 to $[kJ/cm^2]$
         phc[phc<0] = np.nan
         self.ds_gridded = xr.Dataset()
-        self.ds_gridded['g_temp'] = xr.DataArray(self.data_arrays['int_temp'],[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
-        self.ds_gridded['g_salt'] = xr.DataArray(self.data_arrays['int_salt'],[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
-        self.ds_gridded['g_cond'] = xr.DataArray(self.data_arrays['int_cond'],[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
-        self.ds_gridded['g_dens'] = xr.DataArray(self.data_arrays['int_dens'],[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
-        if 'oxygen' in self.variable_names:
-            self.ds_gridded['g_oxy4'] = xr.DataArray(self.data_arrays['int_oxy4'],[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
+        for data_array_key,value in self.data_arrays.items():
+            if data_array_key in self.variable_names:
+                self.ds_gridded[data_array_key] = xr.DataArray(value,[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
+                
+        gridded_vars = [varname.replace('int_','g_') for varname in self.data_arrays.keys()]
+        for gridded_var in gridded_vars:
+            self.ds_gridded[gridded_var] = xr.DataArray(self.data_arrays[gridded_var.replace('g_','int_')],[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
+        # self.ds_gridded['g_temp'] = xr.DataArray(self.data_arrays['int_temperature'],[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
+        # self.ds_gridded['g_salt'] = xr.DataArray(self.data_arrays['int_salinity'],[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
+        # self.ds_gridded['g_cond'] = xr.DataArray(self.data_arrays['int_conductivity'],[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
+        # self.ds_gridded['g_dens'] = xr.DataArray(self.data_arrays['int_density'],[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
+        # if 'oxygen' in self.variable_names:
+        #     self.ds_gridded['g_oxy4'] = xr.DataArray(self.data_arrays['int_oxygen'],[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
+            
         self.ds_gridded['g_hc'] = xr.DataArray(hc*10**-4,[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
         self.ds_gridded['g_phc'] = xr.DataArray(phc*10**-4,[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
         self.ds_gridded['g_sp'] = xr.DataArray(spc,[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
