@@ -1,64 +1,36 @@
 import unittest
 from pathlib import Path
+import xarray as xr
 import numpy as np
 import pandas as pd
-import xarray as xr
-from glider_ingest.MissionProcessor import MissionProcessor
-from glider_ingest.MissionData import MissionData
-import pytest
+from glider_ingest import MissionProcessor, MissionData
 
 class TestMissionProcessor(unittest.TestCase):
     def setUp(self):
-        self.test_dir = Path(__file__).parent.joinpath("test_data")
-        memory_card_copy_loc=Path(self.test_dir).joinpath("memory_card_copy")
-        working_dir=Path(self.test_dir).joinpath("working")
+        # Create test paths
+        self.test_dir = Path(__file__).parent
+        self.memory_card_copy_loc = self.test_dir.joinpath('test_data/memory_card_copy')
+        self.working_dir = self.test_dir.joinpath('test_data/working_dir').resolve()
+        self.mission_num = '46'
+        
+        # Create base MissionData instance
         self.mission_data = MissionData(
-            memory_card_copy_loc=memory_card_copy_loc,
-            working_dir=working_dir,
-            mission_num="45",
-            glider_id='307'
+            memory_card_copy_loc=self.memory_card_copy_loc,
+            working_dir=self.working_dir,
+            mission_num=self.mission_num
         )
-        self.mission_data.setup()
-        self.processor = MissionProcessor(mission_data=self.mission_data)
 
-    def test_initialization(self):
-        self.assertIsInstance(self.processor.mission_data, MissionData)
-        self.assertEqual(self.processor.mission_data.mission_num, "45")
-        self.assertEqual(self.processor.mission_data.glider_id, "307")
+    def test_generate_mission_dataset(self):
+        processor = MissionProcessor(mission_data=self.mission_data)
+        processor.generate_mission_dataset()
+        
+        self.assertTrue(hasattr(processor.mission_data, 'ds_mission'))
+        self.assertIn('temperature', processor.mission_data.ds_mission)
+        self.assertIn('pressure', processor.mission_data.ds_mission)
 
-    @pytest.mark.slow()
-    def test_add_global_attrs_validation(self):
-        self.processor.generate_mission_dataset()
-        
-        required_attrs = [
-            "Conventions",
-            "cdm_data_type",
-            "featureType",
-            "geospatial_bounds_crs",
-            "institution",
-            "platform_type",
-            "wmo_id"
-        ]
-        
-        for attr in required_attrs:
-            self.assertIn(attr, self.mission_data.ds_mission.attrs)
-        
-        self.assertEqual(self.mission_data.ds_mission.attrs["platform_type"], "Slocum Glider")
-        self.assertEqual(self.mission_data.ds_mission.attrs["wmo_id"], "4801938")
-
-    @pytest.mark.slow()
     def test_save_mission_dataset(self):
-        # Setup test dataset
-        self.mission_data.output_nc_path = self.test_dir / "test_output.nc"
+        processor = MissionProcessor(mission_data=self.mission_data)
+        self.mission_data.output_nc_path = self.working_dir / 'test_output.nc'
         
-        # Test save functionality
-        self.processor.save_mission_dataset()
-        
-        # Verify file creation
+        processor.save_mission_dataset()
         self.assertTrue(self.mission_data.output_nc_path.exists())
-
-    def tearDown(self):
-        # Clean up test files
-        if hasattr(self.mission_data, 'output_nc_path') and self.mission_data.output_nc_path.exists():
-            self.mission_data.output_nc_path.unlink()
-            

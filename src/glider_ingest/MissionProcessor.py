@@ -3,7 +3,6 @@ from attrs import define
 from glider_ingest.MissionData import MissionData
 from glider_ingest.ScienceProcessor import ScienceProcessor
 from glider_ingest.FlightProcessor import FlightProcessor
-from glider_ingest.utils import add_gridded_data
 
 
 @define
@@ -88,7 +87,7 @@ class MissionProcessor:
         self.mission_data.add_attrs()
 
         # Add gridded data to the mission dataset
-        self.mission_data.ds_mission = add_gridded_data(self.mission_data.ds_mission)
+        self.mission_data.add_gridded_data()
 
 
     def save_mission_dataset(self):

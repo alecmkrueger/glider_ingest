@@ -8,7 +8,7 @@ import xarray as xr
 import datetime
 from functools import wraps
 from time import time
-from .gridder import Gridder
+import inspect
 
 def print_time(message: str) -> None:
     """
@@ -30,6 +30,30 @@ def print_time(message: str) -> None:
     # Print the final message
     print(whole_message)
     
+
+def f_print(*args, return_string=False):
+    # Get the current frame and extract the calling frame
+    frame = inspect.currentframe().f_back
+    # Combine locals and globals for name lookup
+    all_vars = {**frame.f_globals, **frame.f_locals}
+    
+    results = []
+    for var in args:
+        # Find all variable names that match the value of `var`
+        var_names = [name for name, val in all_vars.items() if val is var]
+        if var_names:
+            # Use the first matching variable name
+            results.append(f"{var_names[0]} = {var}")
+        else:
+            results.append(f"Could not determine variable name for value: {var}")
+    
+    # Return or print the result
+    if return_string:
+        return ", ".join(results)
+    else:
+        print(", ".join(results))
+
+print(f_print(1,return_string=True))
 
 def timing(f):
     """Time a function.
@@ -92,35 +116,6 @@ def invert_dict(dict: dict) -> dict:
     """
     # Create a new dictionary with inverted key-value pairs
     return {value: key for key, value in dict.items()}
-
-def add_gridded_data(ds_mission: xr.Dataset) -> xr.Dataset:
-    """
-    Add gridded data to a mission dataset using the Gridder class.
-
-    Parameters
-    ----------
-    ds_mission : xarray.Dataset
-        The mission dataset to process.
-
-    Returns
-    -------
-    xarray.Dataset
-        The updated dataset with gridded data added.
-
-    Notes
-    -----
-    This function creates a `Gridder` object to compute the gridded dataset,
-    updates the mission dataset with the gridded data, and prints timing information.
-    """
-    print_time('Adding Gridded Data')
-    # Create Gridder object with the mission dataset
-    gridder = Gridder(ds_mission=ds_mission)
-    # Generate the gridded dataset
-    gridder.create_gridded_dataset()
-    # Update the mission dataset with the gridded dataset
-    ds_mission.update(gridder.ds_gridded)
-    print_time('Finished Adding Gridded Data')
-    return ds_mission
 
 def get_polygon_coords(ds_mission: xr.Dataset) -> str:
     """

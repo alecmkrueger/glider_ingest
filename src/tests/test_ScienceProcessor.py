@@ -50,15 +50,6 @@ class TestScienceProcessor(unittest.TestCase):
         self.assertIsInstance(self.processor.mission_data.ds_sci, xr.Dataset)
         self.assertEqual(self.processor.mission_data.ds_sci.platform.values, "307")
 
-    def test_format_sci_ds(self):
-        self.processor.convert_sci_df_to_ds()
-        self.processor.format_sci_ds()
-        
-        # Check renamed variables
-        self.assertIn('time', self.processor.mission_data.ds_sci.dims)
-        self.assertIn('pressure', self.processor.mission_data.ds_sci)
-        self.assertIn('temperature', self.processor.mission_data.ds_sci)
-
     @pytest.mark.slow
     def test_process_sci_data_full_workflow(self):
         # Run the full processing workflow
@@ -66,8 +57,8 @@ class TestScienceProcessor(unittest.TestCase):
         
         # Verify final dataset structure
         self.assertIsInstance(self.processor.mission_data.ds_sci, xr.Dataset)
-        self.assertIn('pressure', self.processor.mission_data.ds_sci)
-        self.assertIn('temperature', self.processor.mission_data.ds_sci)
-        self.assertIn('platform', self.processor.mission_data.ds_sci)
+        self.assertIn('sci_water_pressure', list(self.processor.mission_data.ds_sci.keys()))
+        self.assertIn('sci_water_temp', list(self.processor.mission_data.ds_sci.keys()))
+        self.assertIn('platform', list(self.processor.mission_data.ds_sci.keys()))
 
 

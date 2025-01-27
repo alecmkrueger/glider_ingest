@@ -13,13 +13,13 @@ class TestMissionData(unittest.TestCase):
         self.mission_data = MissionData(
             memory_card_copy_loc=self.memory_card_copy_loc,
             working_dir=self.working_dir,
-            mission_num="45"
+            mission_num="46"
         )
 
     def test_initialization(self):
         self.assertIsInstance(self.mission_data.memory_card_copy_loc, Path)
         self.assertIsInstance(self.mission_data.working_dir, Path)
-        self.assertEqual(self.mission_data.mission_num, "45")
+        self.assertEqual(self.mission_data.mission_num, "46")
 
     def test_get_file_locs(self):
         self.mission_data.get_file_locs()
@@ -30,6 +30,9 @@ class TestMissionData(unittest.TestCase):
         
     def test_add_variables(self):
         self.mission_data.add_variables(['water','air'])
+    
+    def test_add_variables_with_debug(self):
+        self.mission_data.add_variables(['water','air'],debug=True)
     
     def test_add_variables_not_all_str_or_variable(self):
         with self.assertRaises(TypeError):
@@ -45,7 +48,7 @@ class TestMissionData(unittest.TestCase):
         mission = MissionData(
             memory_card_copy_loc=Path(self.test_dir),
             working_dir=Path(self.test_dir),
-            mission_num="45",
+            mission_num="46",
             mission_start_date="2024-01-01",
             mission_end_date="2024-12-31"
         )
@@ -84,13 +87,13 @@ class TestMissionData(unittest.TestCase):
 
     def test_get_mission_title_default(self):
         self.mission_data.get_mission_title()
-        self.assertEqual(self.mission_data.mission_title, "Mission 45")
+        self.assertEqual(self.mission_data.mission_title, "Mission 46")
 
     def test_get_mission_title_custom(self):
         mission = MissionData(
             memory_card_copy_loc=Path(self.test_dir),
             working_dir=Path(self.test_dir),
-            mission_num="45",
+            mission_num="46",
             mission_title="Custom Mission"
         )
         mission.get_mission_title()
@@ -100,7 +103,7 @@ class TestMissionData(unittest.TestCase):
         self.mission_data.glider_id = "307"
         self.mission_data.mission_year = "2024"
         self.mission_data.get_nc_filename()
-        self.assertEqual(self.mission_data.nc_filename, "M45_2024_307.nc")
+        self.assertEqual(self.mission_data.nc_filename, "M46_2024_307.nc")
 
     def test_get_files_missing_directory(self):
         with self.assertRaises(ValueError):

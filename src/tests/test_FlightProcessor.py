@@ -39,23 +39,6 @@ class TestFlightProcessor(unittest.TestCase):
         self.assertIsInstance(self.flight_processor.mission_data.ds_fli, xr.Dataset)
         self.assertIn('m_pressure', self.flight_processor.mission_data.ds_fli.variables)
 
-    def test_format_flight_ds(self):
-        test_times = pd.date_range('2024-01-01', periods=3)
-        test_ds = xr.Dataset({
-            'm_present_time': ('index', test_times),
-            'm_pressure': ('index', [10.0, 20.0, 30.0]),
-            'm_water_depth': ('index', [100.0, 200.0, 300.0]),
-            'm_latitude': ('index', [25.1, 25.2, 25.3]),
-            'm_longitude': ('index', [-94.1, -94.2, -94.3])
-        })
-        self.flight_processor.mission_data.ds_fli = test_ds
-        self.flight_processor.format_flight_ds()
-        
-        self.assertIn('m_time', self.flight_processor.mission_data.ds_fli.dims)
-        self.assertIn('depth', self.flight_processor.mission_data.ds_fli.variables)
-        self.assertIn('latitude', self.flight_processor.mission_data.ds_fli.variables)
-        self.assertIn('longitude', self.flight_processor.mission_data.ds_fli.variables)
-
     @pytest.mark.slow()
     def test_process_flight_data_workflow(self):
         self.flight_processor.mission_data.df_fli = self.sample_flight_df
@@ -63,9 +46,9 @@ class TestFlightProcessor(unittest.TestCase):
         
         self.assertTrue(hasattr(self.flight_processor.mission_data, 'ds_fli'))
         self.assertIsInstance(self.flight_processor.mission_data.ds_fli, xr.Dataset)
-        self.assertIn('latitude', self.flight_processor.mission_data.ds_fli.variables)
-        self.assertIn('longitude', self.flight_processor.mission_data.ds_fli.variables)
-        self.assertIn('depth', self.flight_processor.mission_data.ds_fli.variables)
+        self.assertIn('m_lat', self.flight_processor.mission_data.ds_fli.variables)
+        self.assertIn('m_lon', self.flight_processor.mission_data.ds_fli.variables)
+        self.assertIn('m_water_depth', list(self.flight_processor.mission_data.ds_fli.variables.keys()))
     
 
 

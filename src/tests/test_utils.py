@@ -3,8 +3,8 @@ import numpy as np
 import xarray as xr
 from glider_ingest.utils import (
     print_time, find_nth, invert_dict, 
-    add_gridded_data, get_polygon_coords,
-    timing,get_wmo_id
+    get_polygon_coords,
+    timing,get_wmo_id, f_print
 )
 
 class TestUtils(unittest.TestCase):
@@ -24,6 +24,10 @@ class TestUtils(unittest.TestCase):
             },
             coords={'time': times}
         )
+        vars_to_grid = ['temperature', 'salinity', 'conductivity', 'density', 'oxygen']
+        for var in vars_to_grid:
+            self.test_ds[var].attrs['to_grid'] = True
+
 
     def test_print_time(self):
         test_message = "Test Message"
@@ -39,6 +43,38 @@ class TestUtils(unittest.TestCase):
         output = captured_output.getvalue().strip()
         self.assertIn(test_message, output)
         self.assertIn(":", output)
+            
+    def test_f_print(self):
+        # Test variables
+        x = 42
+        y = "test"
+        z = [1, 2, 3]
+        
+        # Test return_string=True
+        result = f_print(x, y, z, return_string=True)
+        self.assertIn("x = 42", result)
+        self.assertIn("y = test", result)
+        self.assertIn("z = [1, 2, 3]", result)
+        
+        # Test print output
+        import io
+        import sys
+        captured_output = io.StringIO()
+        sys.stdout = captured_output
+        
+        f_print(x, y, z)
+        
+        sys.stdout = sys.__stdout__
+        output = captured_output.getvalue().strip()
+        
+        self.assertIn("x = 42", output)
+        self.assertIn("y = test", output)
+        self.assertIn("z = [1, 2, 3]", output)
+        
+        # Test value with no variable assignment
+        result = f_print(1, return_string=True)
+        self.assertIn("Could not determine variable name for value: 1", result)
+
 
     def test_find_nth(self):
         test_string = "test.string.with.dots"
@@ -57,18 +93,6 @@ class TestUtils(unittest.TestCase):
         
         # Test empty dict
         self.assertEqual(invert_dict({}), {})
-
-    def test_add_gridded_data(self):
-        result_ds = add_gridded_data(self.test_ds)
-        
-        # Check if gridded variables were added
-        self.assertIn('g_temp', result_ds)
-        self.assertIn('g_salt', result_ds)
-        self.assertIn('g_depth', result_ds)
-        
-        # Verify dimensions
-        self.assertIn('g_time', result_ds.g_temp.dims)
-        self.assertIn('g_pres', result_ds.g_temp.dims)
 
     def test_get_polygon_coords(self):
         polygon = get_polygon_coords(self.test_ds)

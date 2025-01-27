@@ -6,8 +6,9 @@ from attrs import define, field
 import datetime
 import uuid
 
-from glider_ingest.utils import find_nth, get_polygon_coords
+from glider_ingest.utils import find_nth, get_polygon_coords,print_time
 from glider_ingest.variable import Variable
+from glider_ingest.gridder import Gridder
 
 
 @define
@@ -189,7 +190,6 @@ class MissionData:
         variables_dict = {var.data_source_name: var for var in variables}
         self.mission_vars.update(variables_dict)
         
-        
 
     def _get_sample_file(self):
         """
@@ -322,6 +322,30 @@ class MissionData:
                 self.ds_mission = self.ds_mission.rename({variable.data_source_name: variable.short_name})
             else:
                 print(f'{variable.data_source_name}:{variable.short_name} not in dataset')
+      
+    def add_gridded_data(self) -> None:
+        """
+        Add gridded data to the mission dataset using the Gridder class.
+
+        Notes
+        -----
+        This method creates a `Gridder` object to compute the gridded dataset,
+        updates the mission dataset with the gridded data, and prints timing information.
+        """
+        
+        print_time('Adding Gridded Data')
+        
+        # Create Gridder object with the mission dataset
+        gridder = Gridder(ds_mission=self.ds_mission)
+        
+        # Generate the gridded dataset 
+        gridder.create_gridded_dataset()
+        
+        # Update the mission dataset with the gridded dataset
+        self.ds_mission.update(gridder.ds_gridded)
+        
+        print_time('Finished Adding Gridded Data')
+
         
     def add_global_attrs(self):
         self.ds_mission.attrs = {'Conventions': 'CF-1.6, COARDS, ACDD-1.3',

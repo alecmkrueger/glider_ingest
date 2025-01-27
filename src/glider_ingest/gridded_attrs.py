@@ -115,7 +115,7 @@ def generate_variables(interval_h, interval_p):
         observation_type='calculated',
         source='g_temp',
         resolution=str(interval_h)+'hour and '+str(interval_p)+'dbar',
-        standard_name='sea_water_heat_content_for_grids_above_26�C',
+        standard_name='sea_water_heat_content_for_grids_above_26_C',
         units='kJ/cm^2',
         valid_max=10.0,
         valid_min=0.0
