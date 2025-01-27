@@ -81,12 +81,15 @@ class MissionProcessor:
         # Combine science and flight datasets into the mission dataset
         self.mission_data.ds_mission = self.mission_data.ds_sci.copy()
         self.mission_data.ds_mission.update(self.mission_data.ds_fli)
+        
+        self.mission_data.rename_mission_variables()
+        
+        # Add global attributes to the mission dataset
+        self.mission_data.add_attrs()
 
         # Add gridded data to the mission dataset
         self.mission_data.ds_mission = add_gridded_data(self.mission_data.ds_mission)
 
-        # Add global attributes to the mission dataset
-        self.mission_data.add_attrs()
 
     def save_mission_dataset(self):
         """

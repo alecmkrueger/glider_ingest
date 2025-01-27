@@ -65,7 +65,7 @@ class MissionData:
     glider_ids: dict = field(default={'199': 'Dora', '307': 'Reveille', '308': 'Howdy', '540': 'Stommel', '541': 'Sverdrup', '1148': 'unit_1148'})
     wmo_ids: dict = field(default={'199': 'unknown', '307': '4801938', '308': '4801915', '540': '4801916', '541': '4801924', '1148': '4801915'})
     wmo_id: str = field(default=None)
-    mission_vars: dict|None = field(default={})
+    mission_vars: dict|None = field(default={})  # Dictonary of mission variables with keys:Variable.data_source_name and values:Variable
 
     # Post init variables
     fli_files_loc: Path = field(init=False)
@@ -312,6 +312,16 @@ class MissionData:
             return files
         else:
             raise ValueError(f'Path not found: {files_loc.resolve()}')
+        
+    def rename_mission_variables(self):
+        """
+        Renames mission-specific variables in the NetCDF dataset.
+        """
+        for key,variable in self.mission_vars.items():
+            if variable.data_source_name in self.ds_mission.data_vars.keys():
+                self.ds_mission = self.ds_mission.rename({variable.data_source_name: variable.short_name})
+            else:
+                print(f'{variable.data_source_name}:{variable.short_name} not in dataset')
         
     def add_global_attrs(self):
         self.ds_mission.attrs = {'Conventions': 'CF-1.6, COARDS, ACDD-1.3',

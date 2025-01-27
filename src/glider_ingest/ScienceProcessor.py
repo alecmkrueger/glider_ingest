@@ -42,16 +42,16 @@ class ScienceProcessor:
         """        
         # If 'sci_oxy4_oxygen' is not present, remove its data_source_name from the list
         if 'sci_oxy4_oxygen' not in variables:
-            self.mission_data.mission_vars['sci_oxy4_oxygen'].data_source_name = ''
+            self.mission_data.mission_vars.pop('sci_oxy4_oxygen')
                 
         if 'sci_flbbcd_bb_units' not in variables:
-            self.mission_data.mission_vars['sci_flbbcd_bb_units'].data_source_name = ''
+            self.mission_data.mission_vars.pop('sci_flbbcd_bb_units')
         
         if 'sci_flbbcd_cdom_units' not in variables:
-            self.mission_data.mission_vars['sci_flbbcd_cdom_units'].data_source_name = ''
+            self.mission_data.mission_vars.pop('sci_flbbcd_cdom_units')
             
         if 'sci_flbbcd_chlor_units' not in variables:
-            self.mission_data.mission_vars['sci_flbbcd_chlor_units'].data_source_name = ''
+            self.mission_data.mission_vars.pop('sci_flbbcd_chlor_units')
                     
 
 
@@ -94,15 +94,15 @@ class ScienceProcessor:
 
         # Perform variable conversions and calculations
         self.mission_data.df_sci['sci_water_pressure'] *= 10  # Convert pressure from db to dbar
-        self.mission_data.df_sci['sci_water_sal'] = gsw.SP_from_C(
+        self.mission_data.df_sci['calculated_salinity'] = gsw.SP_from_C(
             self.mission_data.df_sci['sci_water_cond'] * 10,
             self.mission_data.df_sci['sci_water_temp'],
             self.mission_data.df_sci['sci_water_pressure']
         )
-        CT = gsw.CT_from_t(self.mission_data.df_sci['sci_water_sal'],
+        CT = gsw.CT_from_t(self.mission_data.df_sci['calculated_salinity'],
                            self.mission_data.df_sci['sci_water_temp'],
                            self.mission_data.df_sci['sci_water_pressure'])
-        self.mission_data.df_sci['sci_water_dens'] = gsw.rho_t_exact(self.mission_data.df_sci['sci_water_sal'],
+        self.mission_data.df_sci['calculated_density'] = gsw.rho_t_exact(self.mission_data.df_sci['calculated_salinity'],
                                                                      CT,
                                                                      self.mission_data.df_sci['sci_water_pressure'])
 
@@ -143,33 +143,11 @@ class ScienceProcessor:
         xr.Dataset
             The formatted science dataset.
         """
-        # Sort and rename variables in the dataset
+        # Sort the dataset by time and create time variable
         self.mission_data.ds_sci['index'] = np.sort(self.mission_data.ds_sci['sci_m_present_time'].values.astype('datetime64[ns]'))
-        self.mission_data.ds_sci = self.mission_data.ds_sci.drop_vars('sci_m_present_time')
-
-        # Rename variables based on availability of specific keys
-        if 'sci_oxy4_oxygen' in self.mission_data.ds_sci.data_vars.keys():
-            self.mission_data.ds_sci = self.mission_data.ds_sci.rename({
-                'index': 'time',
-                'sci_water_pressure': 'pressure',
-                'sci_water_temp': 'temperature',
-                'sci_water_cond': 'conductivity',
-                'sci_water_sal': 'salinity',
-                'sci_water_dens': 'density',
-                'sci_flbbcd_bb_units': 'turbidity',
-                'sci_flbbcd_cdom_units': 'cdom',
-                'sci_flbbcd_chlor_units': 'chlorophyll',
-                'sci_oxy4_oxygen': 'oxygen'
-            })
-        else:
-            self.mission_data.ds_sci = self.mission_data.ds_sci.rename({
-                'index': 'time',
-                'sci_water_pressure': 'pressure',
-                'sci_water_temp': 'temperature',
-                'sci_water_cond': 'conductivity',
-                'sci_water_sal': 'salinity',
-                'sci_water_dens': 'density'
-            })
+        self.mission_data.ds_sci = self.mission_data.ds_sci.drop_vars('sci_m_present_time')  # Drop original time variable
+        
+        self.mission_data.ds_sci = self.mission_data.ds_sci.rename({'index': 'time'})
 
 
     def process_sci_data(self) -> xr.Dataset:
@@ -189,6 +167,5 @@ class ScienceProcessor:
         # Load science data and perform all transformations
         self.load_science()
         self.convert_sci_df_to_ds()
-        # self.mission_data.add_science_attrs()
         self.format_sci_ds()
         print_time('Finished Processing Science Data')

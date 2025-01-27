@@ -56,7 +56,6 @@ class FlightProcessor:
         self.mission_data.df_fli['m_pressure'] *= 10
 
         # Rename columns for clarity and remove NaN values
-        self.mission_data.df_fli.rename(columns={'m_lat': 'm_latitude', 'm_lon': 'm_longitude'}, inplace=True)
         self.mission_data.df_fli = self.mission_data.df_fli.dropna()
         dbd.close()
 
@@ -87,7 +86,9 @@ class FlightProcessor:
         """
         self.mission_data.ds_fli['index'] = np.sort(self.mission_data.ds_fli['m_present_time'].values.astype('datetime64[ns]'))
         self.mission_data.ds_fli = self.mission_data.ds_fli.drop_vars('m_present_time')
-        self.mission_data.ds_fli = self.mission_data.ds_fli.rename({'index': 'm_time','m_pressure':'m_pressure','m_water_depth':'depth','m_latitude':'latitude','m_longitude':'longitude'})
+        self.mission_data.ds_fli = self.mission_data.ds_fli.rename({'index': 'm_time'})
+
+        # self.mission_data.ds_fli = self.mission_data.ds_fli.rename({'index': 'm_time','m_pressure':'m_pressure','m_water_depth':'depth','m_latitude':'latitude','m_longitude':'longitude'})
 
 
     def process_flight_data(self) -> xr.Dataset:
@@ -108,6 +109,5 @@ class FlightProcessor:
         print_time('Processing Flight Data')
         self.load_flight()
         self.convert_fli_df_to_ds()
-        # self.mission_data.add_flight_attrs()
         self.format_flight_ds()
         print_time('Finised Processing Flight Data')
