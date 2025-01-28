@@ -128,7 +128,7 @@ class Processor:
         # Get the variable data_source_names
         var_names = self._get_mission_variable_short_names()
         if len(set(var_names)) != len(var_names):
-            raise ValueError('Duplicate variables in mission_vars list')
+            print('Duplicate variables in mission_vars list')
         
     def add_mission_vars(self, mission_vars: list[Variable]):
         """
@@ -142,11 +142,27 @@ class Processor:
    
     def _copy_files(self):
         """
-        Copy the memory card copy files to the working directory
+        Copy only LOGS and STATE/CACHE folders from memory card copy to working directory
         """
         original_loc = self.memory_card_copy_path
         new_loc = self.mission_folder_path
-        shutil.copytree(original_loc, new_loc, dirs_exist_ok=True)
+        
+        # Define patterns to include
+        include_patterns = ['**/LOGS', '**/logs', '**/STATE/CACHE', '**/state/cache']
+        
+        for pattern in include_patterns:
+            for source_path in original_loc.glob(pattern):
+                # Create relative path to maintain directory structure
+                relative_path = source_path.relative_to(original_loc)
+                destination_path = new_loc / relative_path
+                
+                # Create parent directories if they don't exist
+                destination_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                # Copy directory
+                if source_path.is_dir():
+                    shutil.copytree(source_path, destination_path, dirs_exist_ok=True)
+
 
     def _get_files_by_extension(self,directory_path: Path, extensions: list[str], as_string: bool = False) -> list:
         """
@@ -281,7 +297,7 @@ class Processor:
         dbd_vars = self._get_dbd_variables(dbd=dbd)
         missing_vars = [var for var in variables_to_get if var not in dbd_vars]
         if missing_vars:
-            raise ValueError(f'The following variables are missing from the dbd files: {missing_vars}')
+            print(f'The following variables are missing from the dbd files: {missing_vars}')
         
     def _get_sci_files(self):
         """
@@ -330,11 +346,6 @@ class Processor:
         -------
         str
             The validated mission year
-
-        Raises
-        ------
-        ValueError
-            If the mission year is not found in the valid options
         """
         full_filename = self._get_full_filename()
         mission_year = full_filename[full_filename.find('-') + 1: find_nth(full_filename, '-', 2)].strip()
@@ -351,11 +362,6 @@ class Processor:
         -------
         str
             The validated glider ID
-        
-        Raises
-        ------
-        ValueError
-            If the glider identifier is not found in the valid options
         """
         full_filename = self._get_full_filename()
         glider_identifier = full_filename.split('-')[0].replace('unit_', '').strip()
@@ -372,7 +378,8 @@ class Processor:
             return inverted_glider_ids[glider_identifier]
             
         valid_options = list(self.glider_ids.keys()) + list(self.glider_ids.values())
-        raise ValueError(f'Invalid glider identifier: {glider_identifier}. Must be one of: {valid_options}')
+        print(f'Invalid glider identifier: {glider_identifier}. Must be one of: {valid_options}')
+        return None
     
     def _get_dbd_data(self):
         dbd = self._read_dbd()
@@ -418,7 +425,7 @@ class Processor:
         new_column_names = ['time']
         new_column_names.extend(self._get_mission_variable_data_source_names(filter_out_none=True))
         if len(df.columns) != len(new_column_names):
-            raise ValueError(f'The number of columns in the dataframe does not match the number of mission variables, {df.columns} vs {new_column_names}')
+            print(f'The number of columns in the dataframe does not match the number of mission variables, {df.columns} vs {new_column_names}')
         # Add names to the dataframe columns
         df.columns = new_column_names
         # Format time
