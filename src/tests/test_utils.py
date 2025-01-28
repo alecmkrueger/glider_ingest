@@ -7,7 +7,7 @@ import pytest
 from glider_ingest.utils import (
     print_time, find_nth, invert_dict, 
     get_polygon_coords,
-    timing,get_wmo_id, f_print
+    timing,get_wmo_id, f_print, get_polygon_bounds
 )
 
 class TestUtils(unittest.TestCase):
@@ -95,25 +95,57 @@ class TestUtils(unittest.TestCase):
         # Test empty dict
         self.assertEqual(invert_dict({}), {})
 
-    @pytest.mark.skip(reason="Needs to be updated")
+    def test_get_polygon_bounds(self):
+        # Test data
+        longitude = np.array([-80.0, -80.1, -80.2])
+        latitude = np.array([28.5, 29.0, 29.4])
+        
+        bounds = get_polygon_bounds(longitude, latitude)
+        self.assertEqual(len(bounds), 4)
+        self.assertLess(bounds[0], 29.5)  # lat_max
+        self.assertGreater(bounds[0], bounds[1])  # lat_max > lat_min
+        self.assertGreater(bounds[2], bounds[3])  # lon_max > lon_min
+
     def test_get_polygon_coords(self):
-        polygon = get_polygon_coords(self.test_ds)
+        # Test data
+        longitude = np.array([-80.0, -80.1, -80.2])
+        latitude = np.array([28.5, 29.0, 29.4])
+        lat_max, lat_min = 29.4, 28.5
+        lon_max, lon_min = -80.0, -80.2
+        
+        polygon = get_polygon_coords(longitude, latitude, lat_max, lat_min, lon_max, lon_min)
         
         # Check polygon string format
         self.assertTrue(polygon.startswith('POLYGON (('))
         self.assertTrue(polygon.endswith('))'))
         
         # Verify coordinate count (5 points for closed polygon)
-        coord_pairs = polygon.count(' ') // 2  # Each coordinate pair has lat lon
+        coord_pairs = polygon.count(',') + 1  # Number of coordinate pairs
         self.assertEqual(coord_pairs, 5)
+
+    def test_get_polygon_bounds_edge_cases(self):
+        # Test with all latitudes above 29.5
+        longitude = np.array([-80.0, -80.1])
+        latitude = np.array([30.0, 30.1])
         
-    @pytest.mark.skip(reason="Needs to be updated")
-    def test_get_polygon_coords_single_point(self):
-        # Test with dataset containing single point
-        single_ds = self.test_ds.isel(time=[0])
-        polygon = get_polygon_coords(single_ds)
-        self.assertIsInstance(polygon, str)
-        self.assertTrue(polygon.startswith('POLYGON (('))
+        with self.assertRaises(ValueError):
+            get_polygon_bounds(longitude, latitude)
+            
+        # Test with NaN values
+        longitude = np.array([-80.0, np.nan, -80.2])
+        latitude = np.array([28.5, 29.0, np.nan])
+        bounds = get_polygon_bounds(longitude, latitude)
+        self.assertFalse(np.any(np.isnan(bounds)))
+
+    def test_get_wmo_id_additional(self):
+        # Test invalid input
+        with self.assertRaises(KeyError):
+            get_wmo_id('999')
+            
+        # Test different input types
+        self.assertEqual(get_wmo_id(308), '4801915')
+        self.assertEqual(get_wmo_id('540'), '4801916')
+
 
     def test_find_nth_empty_string(self):
         self.assertEqual(find_nth("", ".", 1), -1)
