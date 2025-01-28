@@ -14,6 +14,9 @@ class Gridder:
 
     This class provides methods for processing oceanographic data, creating time and pressure grids,
     interpolating data onto those grids, and adding metadata attributes to the gridded dataset.
+    
+    Depends on the dataset having attributes
+    ----------------------------------------
 
     Attributes:
         ds_mission (xr.Dataset): The input mission dataset to process.
@@ -61,7 +64,7 @@ class Gridder:
         
         # Select times corresponding to valid pressures.
         self.ds = self.ds.isel(time=tloc_idx)
-
+        
         # Extract variable names and time/pressure values.
         self.variable_names = list(self.ds.data_vars.keys())
         self.time = self.ds.time.values
@@ -152,8 +155,8 @@ class Gridder:
             - Convert time coordinates to datetime64
             - Set time values to pressure values
         """
-        # if len(tds.time) == 0:
-        #     return tds
+        if len(tds.time) == 0:
+            return tds
             
         tds = tds.sortby('pressure')
         tds = tds.assign_coords(time=('time', tds.time.values.astype('datetime64[ns]')))
@@ -195,7 +198,7 @@ class Gridder:
             for data_array_key, value in self.data_arrays.items():
                 tds_key = data_array_key.replace('int_', '')
                 self.data_arrays[data_array_key][ttt,:] = tds[tds_key].interp(time=self.int_pres)
-
+        
     def _calculate_derived_quantities(self):
         """
         Calculate derived oceanographic quantities.
@@ -237,7 +240,7 @@ class Gridder:
         for data_array_key, value in self.data_arrays.items():
             base_key = data_array_key.replace('int_', '')
             if base_key in self.variable_names:
-                print('adding gridded data to xarray', base_key)
+                # print('adding gridded data to xarray', base_key)
                 gridded_var = f'g_{base_key}'
                 self.ds_gridded[gridded_var] = xr.DataArray(
                     value,
@@ -257,7 +260,7 @@ class Gridder:
                 [('g_time', self.int_time[1:]), ('g_pres', self.int_pres)]
             )
 
-    def create_gridded_dataset(self):
+    def create_gridded_dataset(self) -> xr.Dataset:
         """
         Process and interpolate time-sliced data to create a gridded dataset.
         
@@ -275,99 +278,4 @@ class Gridder:
         hc, phc, spc, dep = self._calculate_derived_quantities()
         self._create_output_dataset(hc, phc, spc, dep)
         self.add_attrs()
-
-
-    # def create_gridded_dataset(self):
-    #     """
-    #     Process and interpolate time-sliced data to create a gridded dataset.
-
-    #     This method iterates through time slices, processes data for each slice, 
-    #     and interpolates variables like temperature, salinity, conductivity, 
-    #     density, and optionally oxygen, onto a pressure-based grid. Additional 
-    #     calculations for derived quantities such as spiciness, potential heat 
-    #     content, and depth are performed. The results are stored in an 
-    #     `xarray.Dataset` with standardized dimensions.
-
-    #     Steps:
-    #         - Select and sort data for each time slice
-    #         - Handle duplicate pressure values by adjusting slightly to ensure uniqueness
-    #         - Interpolate data variables onto a fixed pressure grid
-    #         - Compute derived quantities:
-    #             - Absolute salinity, conservative temperature, and potential temperature
-    #             - Specific heat capacity, spiciness, and depth
-    #             - Heat content and potential heat content
-    #         - Assemble results into an `xarray.Dataset` with standardized dimensions and attributes
-
-    #     Derived quantities:
-    #         - Heat content (HC): :math:`\\Delta Z \\cdot C_p \\cdot T \\cdot \\rho`
-    #         - Potential heat content (PHC): :math:`\\Delta Z \\cdot C_p \\cdot (T - 26) \\cdot \\rho`, where values < 0 are set to NaN
-
-    #     Attributes:
-    #         self.ds_gridded: The resulting gridded dataset with variables:
-    #             - gridded variables depending on the varible settings, to_grid attribute in the Variable class
-    #             - g_hc: Heat content in kJ cm^{-2}
-    #             - g_phc: Potential heat content in kJ cm^{-2}
-    #             - g_sp: Spiciness
-    #             - g_depth: Depth in meters
-
-    #     Note:
-    #         Requires the `gsw` library for oceanographic calculations and assumes 
-    #         that `self.data_arrays` and `self.int_time` are properly initialized.
-    #     """
-
-
-    #     for ttt in range(self.xx):
-    #         tds:xr.Dataset = self.ds.sel(time=slice(str(self.int_time[ttt]),str(self.int_time[ttt+1]))).copy()
-    #         if len(tds.time) > 0:
-    #             tds = tds.sortby('pressure')
-    #             tds = tds.assign_coords(time=('time',tds.time.values.astype('datetime64[ns]')))
-    #             tds['time'] = tds['pressure'].values
-                
-    #             # Remove duplicates and slightly modify if necessary by adding a tiny value
-    #             unique_pressures, indices, counts = np.unique(tds['pressure'], return_index=True, return_counts=True)
-    #             duplicates = unique_pressures[counts > 1]
-    #             for pressure in duplicates:
-    #                 rrr = np.where(tds['pressure'] == pressure)[0]
-    #                 for rr in rrr:
-    #                     modified_pressure = pressure + 0.000000000001*rr
-    #                     tds['pressure'][rr] = modified_pressure
-    #             tds['time'] = tds['pressure'].values # save new non-duplicates pressure
-    #             # Interpolate to a fixed pressure grid
-    #             for data_array_key,value in self.data_arrays.items():
-    #                 # Get tds key from data_array_key
-    #                 tds_key = data_array_key.replace('int_','')  
-    #                 self.data_arrays[data_array_key][ttt,:] = tds[tds_key].interp(time=self.int_pres)
-    #     # give a dz instead of calculating the inter depth
-    #     sa = gsw.SA_from_SP(self.data_arrays['int_salinity'], self.grid_pres, self.lon, self.lat)
-    #     pt = gsw.pt0_from_t(sa, self.data_arrays['int_temperature'], self.grid_pres)
-    #     ct = gsw.CT_from_pt(sa, pt)
-    #     cp = gsw.cp_t_exact(sa, self.data_arrays['int_temperature'], self.grid_pres) * 0.001 # from J/(kg*K) to kJ/(kg*°C) or use 3.85 as a constant?
-    #     dep = gsw.z_from_p(self.grid_pres, self.lat, geo_strf_dyn_height=0, sea_surface_geopotential=0)
-    #     spc = gsw.spiciness0(sa, ct)
-
-    #     dz = self.interval_p
-    #     hc = dz*cp*self.data_arrays['int_temperature']*self.data_arrays['int_density'] # deltaZ * Cp * temperature * density in the unit as $[kJ/m^2]$ * 10**-4 to $[kJ/cm^2]$
-    #     phc = dz*cp*(self.data_arrays['int_temperature']-26)*self.data_arrays['int_density'] # deltaZ * Cp * temperature * density in the unit as $[kJ/m^2]$ * 10**-4 to $[kJ/cm^2]$
-    #     phc[phc<0] = np.nan
-    #     # Initialize empty xarray Dataset to store gridded data
-    #     self.ds_gridded = xr.Dataset()
-
-    #     # Single loop: Add gridded variables with 'g_' prefix
-    #     for data_array_key, value in self.data_arrays.items():
-    #         base_key = data_array_key.replace('int_', '')
-    #         if base_key in self.variable_names:
-    #             print('adding gridded data to xarray', base_key)
-    #             # Create DataArray with gridded dimensions using 'g_' prefix
-    #             gridded_var = f'g_{base_key}'
-    #             self.ds_gridded[gridded_var] = xr.DataArray(
-    #                 value,
-    #                 [('g_time', self.int_time[1:]), ('g_pres', self.int_pres)]
-    #             )
-        
-    #     # Add derived variables
-    #     self.ds_gridded['g_hc'] = xr.DataArray(hc*10**-4,[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
-    #     self.ds_gridded['g_phc'] = xr.DataArray(phc*10**-4,[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
-    #     self.ds_gridded['g_sp'] = xr.DataArray(spc,[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
-    #     self.ds_gridded['g_depth'] = xr.DataArray(dep,[('g_time',self.int_time[1:]),('g_pres',self.int_pres)])
-
-    #     self.add_attrs()
+        return self.ds_gridded

@@ -11,7 +11,7 @@ import time
 import random
 import os
 
-from glider_ingest.utils import get_polygon_coords,print_time
+from glider_ingest.utils import get_polygon_coords,print_time,find_nth
 from glider_ingest.variable import Variable
 from glider_ingest.gridder import Gridder
 from glider_ingest.dataset_attrs import get_default_variables, get_global_attrs
@@ -28,7 +28,6 @@ class Processor:
     mission_num: str
     # Default attributes
     mission_vars: list[Variable] = field(factory=list)
-    # global_attrs: dict = field(default=None)  # found in get_global_attrs
     glider_ids: dict = field(default={'199': 'Dora', '307': 'Reveille', '308': 'Howdy', '540': 'Stommel', '541': 'Sverdrup', '1148': 'unit_1148'})
     wmo_ids: dict = field(default={'199': 'unknown', '307': '4801938', '308': '4801915', '540': '4801916', '541': '4801924', '1148': '4801915'})
     
@@ -40,11 +39,87 @@ class Processor:
     df: pd.DataFrame = field(default=None)
     ds: xr.Dataset = field(default=None)
     
+    # Private backing fields
+    _glider_id: str = field(default=None)
+    _glider_name: str = field(default=None)
+    _wmo_id: str = field(default=None)
+    _mission_year: str = field(default=None)
+    _mission_title: str = field(default=None)
+    _mission_folder_name: str = field(default=None)
+    _mission_folder_path: Path = field(default=None)
+    _netcdf_filename: str = field(default=None)
+    _netcdf_output_path: Path = field(default=None)
+
+    @property
+    def glider_id(self):
+        """Get the glider ID."""
+        if self._glider_id is None:
+            self._glider_id = self._get_glider_id()
+        return self._glider_id
+
+    @property
+    def glider_name(self):
+        """Get the glider name."""
+        if self._glider_name is None:
+            self._glider_name = self.glider_ids[self.glider_id]
+        return self._glider_name
+
+    @property
+    def wmo_id(self):
+        """Get the WMO ID."""
+        if self._wmo_id is None:
+            self._wmo_id = self.wmo_ids[self.glider_id]
+        return self._wmo_id
+    
+    @property
+    def mission_year(self):
+        """Get the mission year."""
+        if self._mission_year is None:
+            self._mission_year = self._get_mission_year()
+        return self._mission_year
+
+    @property
+    def mission_title(self):
+        """Get the mission title."""
+        if self._mission_title is None:
+            self._mission_title = f'Mission {self.mission_num}'
+        return self._mission_title
+
+    @property
+    def mission_folder_name(self):
+        """Get the mission folder name."""
+        if self._mission_folder_name is None:
+            self._mission_folder_name = self.mission_title.replace(' ', '_')
+        return self._mission_folder_name
+
+    @property
+    def mission_folder_path(self):
+        """Get the mission folder path."""
+        if self._mission_folder_path is None:
+            self._mission_folder_path = self.working_dir.joinpath(self.mission_folder_name)
+        return self._mission_folder_path
+
+    @property
+    def netcdf_filename(self):
+        """Get the NetCDF filename."""
+        if self._netcdf_filename is None:
+            self._netcdf_filename = f'M{self.mission_num}_{self.mission_year}_{self.glider_id}.nc'
+        return self._netcdf_filename
+
+    @property
+    def netcdf_output_path(self):
+        """Get the NetCDF path."""
+        if self._netcdf_output_path is None:
+            self._netcdf_output_path = self.mission_folder_path.joinpath(f'{self.netcdf_filename}')
+        return self._netcdf_output_path
+
+    
     def __attrs_post_init__(self):
         """
         Post init method to add default variables to the mission_vars list
         """
         self.add_mission_vars(get_default_variables())
+        
         
     def _check_mission_var_duplicates(self):
         """
@@ -59,33 +134,18 @@ class Processor:
         """
         Add a variable to the mission_vars list
         """
+        if all(isinstance(var, str) for var in mission_vars):
+            mission_vars = [Variable(data_source_name=var) for var in mission_vars]
         self.mission_vars.extend(mission_vars)
         self._check_mission_var_duplicates()
         
-    def _get_mission_title(self):
-        """
-        Get the mission title from the mission_num
-        """
-        return f'Mission {self.mission_num}'
-    
-    def _get_mission_folder_name(self):
-        """
-        Get the mission folder name from the mission_title
-        """
-        return self._get_mission_title().replace(' ', '_')
-    
-    def _get_mission_folder_path(self):
-        """
-        Get the mission copy location from the mission_num
-        """
-        return self.working_dir.joinpath(self._get_mission_folder_name())
-    
+   
     def _copy_files(self):
         """
         Copy the memory card copy files to the working directory
         """
         original_loc = self.memory_card_copy_path
-        new_loc = self._get_mission_folder_path()
+        new_loc = self.mission_folder_path
         shutil.copytree(original_loc, new_loc, dirs_exist_ok=True)
 
     def _get_files_by_extension(self,directory_path: Path, extensions: list[str], as_string: bool = False) -> list:
@@ -110,7 +170,7 @@ class Processor:
         Get the cache files from the memory card copy
         """
         extensions = ['.cac','.CAC']
-        directory_path = self._get_mission_folder_path()
+        directory_path = self.mission_folder_path
         cac_files = self._get_files_by_extension(directory_path=directory_path,extensions=extensions,as_string=as_string)
         return cac_files
 
@@ -118,7 +178,7 @@ class Processor:
         """
         Get the cache file path from the memory card copy
         """
-        return self._get_mission_folder_path().joinpath('cache')
+        return self.mission_folder_path.joinpath('cache')
 
     def _copy_cache_files(self):
         """
@@ -141,7 +201,7 @@ class Processor:
         """
         Get the dbd files from the memory card copy
         """
-        directory_path = self._get_mission_folder_path()
+        directory_path = self.mission_folder_path
         extensions = ['.dbd','.DBD','.ebd','.EBD']
         dbd_files = self._get_files_by_extension(directory_path=directory_path,extensions=extensions,as_string=as_string)
         return dbd_files
@@ -227,7 +287,7 @@ class Processor:
         """
         Get the sci files from the memory card copy
         """
-        directory_path = self._get_mission_folder_path()
+        directory_path = self.mission_folder_path
         extensions = ['.dbd','.DBD']
         sci_files = self._get_files_by_extension(directory_path=directory_path,extensions=extensions,as_string=True)
         return sci_files
@@ -258,6 +318,27 @@ class Processor:
                 if 'full_filename' in line.strip():
                     return line.replace('full_filename:', '').strip()
         return None
+    
+    def _get_mission_year(self):
+        """
+        Get the mission year from the filename.
+
+        Extracts and validates the mission year from the filename, converting between
+        mission names and IDs as needed using the mission_ids mapping.
+
+        Returns
+        -------
+        str
+            The validated mission year
+
+        Raises
+        ------
+        ValueError
+            If the mission year is not found in the valid options
+        """
+        full_filename = self._get_full_filename()
+        mission_year = full_filename[full_filename.find('-') + 1: find_nth(full_filename, '-', 2)].strip()
+        return mission_year
         
     def _get_glider_id(self):
         """
@@ -292,38 +373,6 @@ class Processor:
             
         valid_options = list(self.glider_ids.keys()) + list(self.glider_ids.values())
         raise ValueError(f'Invalid glider identifier: {glider_identifier}. Must be one of: {valid_options}')
-
-    def _get_glider_name(self):
-        """
-        Get the glider name from the glider ID.
-        
-        Uses the glider_ids mapping to convert the glider ID to its corresponding name.
-        
-        Returns
-        -------
-        str
-            The glider name
-        
-        Raises
-        ------
-        ValueError
-            If the glider ID is not found in the mapping
-        """
-        glider_id = self._get_glider_id()
-        
-        if glider_id in self.glider_ids:
-            return self.glider_ids[glider_id]
-            
-        valid_options = list(self.glider_ids.keys())
-        raise ValueError(f'Invalid glider ID: {glider_id}. Must be one of: {valid_options}')
-
-        
-    def _get_wmo_id(self):
-        """
-        Get the wmo id from the mission_vars list
-        """
-        glider_id = self._get_glider_id()
-        return self.wmo_ids[glider_id]
     
     def _get_dbd_data(self):
         dbd = self._read_dbd()
@@ -381,7 +430,7 @@ class Processor:
         df = self._update_dataframe_columns(df)
         self.df = df
         return self.df
-
+    
     def _convert_df_to_ds(self):
         df = self._convert_dbd_to_dataframe()
         ds = xr.Dataset.from_dataframe(df)
@@ -402,7 +451,7 @@ class Processor:
 
     def _add_global_attrs(self):
         from glider_ingest.dataset_attrs import get_global_attrs
-        global_attrs = get_global_attrs(wmo_id = self._get_wmo_id(),mission_title=self._get_mission_title(),
+        global_attrs = get_global_attrs(wmo_id = self.wmo_id,mission_title=self.mission_title,
                                         longitude=self._get_longitude(),latitude=self._get_latitude(),
                                         depth=self._get_depth(),time=self._get_time())
         
@@ -418,12 +467,25 @@ class Processor:
         # Add variable attributes
         self._add_variable_attrs()
         
+    def _add_gridded_data(self):
+        '''Add gridded data to the dataset, must be called after adding attrs'''
+        ds_gridded = Gridder(self.ds).create_gridded_dataset()
+        self.ds.update(ds_gridded)
+
     def process(self,return_ds=True):
         self._convert_df_to_ds()
         self._add_attrs()
+        self._add_gridded_data()
         if return_ds:
             return self.ds
         
+    def save(self,save_path=None):
+        if self.ds is None:
+            self.process()
+        if save_path is None:
+            save_path = self.netcdf_output_path
+        self.ds.to_netcdf(save_path)
+        return self.ds
         
     
 # Test the processor class
@@ -433,5 +495,5 @@ working_dir = Path('C:/Users/alecmkrueger/Documents/GERG/GERG_GitHub/GERG-Glider
 
 processor = Processor(memory_card_copy_path=memory_card_copy_path,working_dir=working_dir,mission_num='46',mission_start_date='2024-06-28 02:58:28.873474121')
 
-ds = processor.process()
+ds = processor.save()
 ds

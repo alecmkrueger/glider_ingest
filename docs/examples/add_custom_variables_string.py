@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from glider_ingest import MissionData, MissionProcessor, Variable
+from glider_ingest import Processor, Variable
 
 def main():
     memory_card_copy_loc = Path('path/to/memory/card/copy')
@@ -9,15 +9,13 @@ def main():
     mission_num = '46'
 
     # Initalize the mission_data container
-    mission_data = MissionData(memory_card_copy_loc=memory_card_copy_loc,
+    processor = Processor(memory_card_copy_loc=memory_card_copy_loc,
                             working_dir=working_dir,
                             mission_num=mission_num)
 
     # Add custom variables to the mission_data container using strings
-    mission_data.add_variables(variables=['m_water_vx','m_water_vy'])
-    # Pass the mission_data container to the MissionProcessor class
-    # call save_mission_dataset to generate and save the mission dataset
-    MissionProcessor(mission_data=mission_data).save_mission_dataset()
+    processor.add_mission_vars(variables=['m_water_vx','m_water_vy'])
+    processor.process()
 
 if __name__ == '__main__':
     main()

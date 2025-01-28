@@ -9,9 +9,9 @@ class Variable:
     A class to represent a variable in a glider mission dataset.
     """
     # Required attributes
-    short_name: str  # Name of the variable in the dataset, if it is changed from the data source
-    # Optional attributes
     data_source_name: str|None = field(default=None)  # Name of the variable in the data source
+    short_name: str|None = field(default=None)  # Name of the variable in the dataset, if it is changed from the data source
+    # Optional attributes
     accuracy: float|None = field(default=None)
     ancillary_variables: str|None = field(default=None)
     instrument: str|None = field(default=None)
@@ -52,6 +52,8 @@ class Variable:
         """
         Post-initialization method to set the wmo_id attribute based on the id attribute.
         """
+        if self.short_name is None and self.data_source_name is None:
+            raise ValueError('Either the short_name or data_source_name attribute must be set.')
         # Generate update_time, long_name, and wmo_id if not given
         # Add current time to update_time if it was not given
         if self.update_time is None:
