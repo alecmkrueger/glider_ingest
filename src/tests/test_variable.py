@@ -4,7 +4,7 @@ from glider_ingest.variable import Variable
 
 class TestVariable(unittest.TestCase):
     def test_variable_basic_initialization(self):
-        var = Variable()
+        var = Variable(short_name='temperature')
         self.assertIsNone(var.data_source_name)
         self.assertEqual(var.type, 'platform')
         self.assertIsNone(var.id)
@@ -23,13 +23,13 @@ class TestVariable(unittest.TestCase):
         self.assertEqual(var.short_name, "temperature")
 
     def test_post_init_timestamp_generation(self):
-        var = Variable()
+        var = Variable(short_name='temperature')
         self.assertIsNotNone(var.update_time)
         # Verify timestamp format
         datetime.strptime(var.update_time, '%Y-%m-%d %H:%M:%S')
 
     def test_post_init_long_name_generation(self):
-        var = Variable(id="307")
+        var = Variable(id="307",short_name='temperature')
         self.assertEqual(var.long_name, "Slocum Glider 307")
 
     def test_to_dict_filtering(self):
@@ -44,7 +44,7 @@ class TestVariable(unittest.TestCase):
         self.assertEqual(result["units"], "celsius")
 
     def test_variable_with_mixed_types(self):
-        var = Variable(
+        var = Variable(short_name='temperature',
             resolution=0.5,
             bytes=32,
             valid_max=25.5,

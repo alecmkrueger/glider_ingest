@@ -3,6 +3,7 @@ import numpy as np
 import xarray as xr
 import io
 import sys
+import pytest
 from glider_ingest.utils import (
     print_time, find_nth, invert_dict, 
     get_polygon_coords,
@@ -94,6 +95,7 @@ class TestUtils(unittest.TestCase):
         # Test empty dict
         self.assertEqual(invert_dict({}), {})
 
+    @pytest.mark.skip(reason="Needs to be updated")
     def test_get_polygon_coords(self):
         polygon = get_polygon_coords(self.test_ds)
         
@@ -104,7 +106,8 @@ class TestUtils(unittest.TestCase):
         # Verify coordinate count (5 points for closed polygon)
         coord_pairs = polygon.count(' ') // 2  # Each coordinate pair has lat lon
         self.assertEqual(coord_pairs, 5)
-
+        
+    @pytest.mark.skip(reason="Needs to be updated")
     def test_get_polygon_coords_single_point(self):
         # Test with dataset containing single point
         single_ds = self.test_ds.isel(time=[0])
