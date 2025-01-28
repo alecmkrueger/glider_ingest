@@ -53,8 +53,6 @@ def f_print(*args, return_string=False):
     else:
         print(", ".join(results))
 
-print(f_print(1,return_string=True))
-
 def timing(f):
     """Time a function.
 
@@ -117,7 +115,21 @@ def invert_dict(dict: dict) -> dict:
     # Create a new dictionary with inverted key-value pairs
     return {value: key for key, value in dict.items()}
 
-def get_polygon_coords(ds_mission: xr.Dataset) -> str:
+def get_polygon_bounds(longitude:np.ndarray,latitude:np.ndarray) -> list:
+    """
+    Generate polygon coordinates for the dataset's global attributes.
+    """
+    # Get the maximum latitude below 29.5
+    lat_max = np.nanmax(latitude[np.where(latitude < 29.5)])
+    # Get the minimum latitude below 29.5
+    lat_min = np.nanmin(latitude[np.where(latitude < 29.5)])
+    # Get the maximum longitude
+    lon_max = np.nanmax(longitude)
+    # Get the minimum longitude
+    lon_min = np.nanmin(longitude)
+    return [lat_max, lat_min, lon_max, lon_min]
+
+def get_polygon_coords(longitude:np.ndarray,latitude:np.ndarray,lat_max:float, lat_min:float, lon_max:float, lon_min:float) -> str:
     """
     Generate polygon coordinates for the dataset's global attributes.
 
@@ -136,20 +148,14 @@ def get_polygon_coords(ds_mission: xr.Dataset) -> str:
     The polygon is constructed based on the northmost, eastmost, southmost, 
     and westmost points where latitude is below 29.5.
     """
-    # Get the maximum latitude below 29.5
-    lat_max = np.nanmax(ds_mission.latitude[np.where(ds_mission.latitude.values < 29.5)].values)
-    # Get the minimum latitude below 29.5
-    lat_min = np.nanmin(ds_mission.latitude[np.where(ds_mission.latitude.values < 29.5)].values)
-    # Get the maximum longitude
-    lon_max = np.nanmax(ds_mission.longitude.values)
-    # Get the minimum longitude
-    lon_min = np.nanmin(ds_mission.longitude.values)
+
+    # lat_max, lat_min, lon_max, lon_min = get_polygon_bounds(longitude,latitude)
 
     # Construct polygon points
-    polygon_1 = f"{lat_max} {ds_mission.longitude[np.where(ds_mission.latitude == lat_max)[0][0]].values}"  # Northmost
-    polygon_2 = f"{ds_mission.latitude[np.where(ds_mission.longitude == lon_max)[0][0]].values} {lon_max}"  # Eastmost
-    polygon_3 = f"{lat_min} {ds_mission.longitude[np.where(ds_mission.latitude == lat_min)[0][0]].values}"  # Southmost
-    polygon_4 = f"{ds_mission.latitude[np.where(ds_mission.longitude == lon_min)[0][0]].values} {lon_min}"  # Westmost
+    polygon_1 = f"{lat_max} {longitude[np.where(latitude == lat_max)[0][0]]}"  # Northmost
+    polygon_2 = f"{latitude[np.where(longitude == lon_max)[0][0]]} {lon_max}"  # Eastmost
+    polygon_3 = f"{lat_min} {longitude[np.where(latitude == lat_min)[0][0]]}"  # Southmost
+    polygon_4 = f"{latitude[np.where(longitude == lon_min)[0][0]]} {lon_min}"  # Westmost
     polygon_5 = polygon_1  # Close the polygon
 
     # Combine points into WKT polygon format

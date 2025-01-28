@@ -7,8 +7,6 @@ import pandas as pd
 import xarray as xr
 import gsw
 
-from glider_ingest.utils import f_print
-
 @define
 class Gridder:
     '''

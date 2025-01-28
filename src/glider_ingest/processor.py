@@ -5,10 +5,16 @@ from pathlib import Path
 from attrs import define, field
 import datetime
 import uuid
+import dbdreader
+import shutil
+import gsw
+import time
+import random
 
-from glider_ingest.utils import find_nth, get_polygon_coords,print_time
+from glider_ingest.utils import get_polygon_coords,print_time
 from glider_ingest.variable import Variable
 from glider_ingest.gridder import Gridder
+from glider_ingest.dataset_attrs import get_default_variables, get_global_attrs
 
 
 @define
@@ -16,156 +22,220 @@ class Processor:
     """
     A class to process glider data
     """
-
-    # Required Variables
-    memory_card_copy_loc: Path
+    # Required attributes
+    memory_card_copy_path: Path
     working_dir: Path
     mission_num: str
-
-    # Optional Variables
-    glider_id: str = field(default=None)
-    nc_filename: str = field(default=None)
-    output_nc_path: Path = field(default=None)
-    mission_start_date: str | None = field(default=None)
-    mission_end_date: str | None = field(default=None)
-    mission_year: str = field(default=None)
-    mission_title: str = field(default=None)
-    glider_name: str = field(default=None)
-    glider_ids: dict = field(default={'199': 'Dora', '307': 'Reveille', '308': 'Howdy', '540': 'Stommel', '541': 'Sverdrup', '1148': 'unit_1148'})
-    wmo_ids: dict = field(default={'199': 'unknown', '307': '4801938', '308': '4801915', '540': '4801916', '541': '4801924', '1148': '4801915'})
-    wmo_id: str = field(default=None)
-    mission_vars: dict|None = field(default={})  # Dictonary of mission variables with keys:Variable.data_source_name and values:Variable
-
-    # Post init variables
-    fli_files_loc: Path = field(init=False)
-    fli_cache_loc: Path = field(init=False)
-    sci_files_loc: Path = field(init=False)
-    sci_cache_loc: Path = field(init=False)
-
-    ds_mission: xr.Dataset = field(init=False)
-
+    # Default attributes
+    mission_vars: list[Variable] = field(factory=list)
+    # global_attrs: dict = field(default=None)  # found in get_global_attrs
+    
+    # Optional attributes
+    mission_start_date: datetime.datetime = field(default=pd.to_datetime('2010-01-01'))  # Used to slice the data during processing
+    mission_end_date: datetime.datetime = field(default=pd.to_datetime(datetime.datetime.today()+datetime.timedelta(days=365)))  # Used to slice the data during processing
+    
     def __attrs_post_init__(self):
         """
-        Post-initialization method to set up file locations for the mission data.
-
-        This method is called automatically after the object is initialized to define paths for
-        flight card logs, science card logs, and their respective caches.
+        Post init method to add default variables to the mission_vars list
         """
-        self.get_file_locs()
-        self.init_base_variables()
+        self.add_mission_vars(get_default_variables())
+        
+    def _check_mission_var_duplicates(self):
+        """
+        Check for duplicate variables in the mission_vars list
+        """
+        # Get the variable data_source_names
+        var_names = self._get_mission_variable_short_names()
+        if len(set(var_names)) != len(var_names):
+            raise ValueError('Duplicate variables in mission_vars list')
+        
+    def add_mission_vars(self, mission_vars: list[Variable]):
+        """
+        Add a variable to the mission_vars list
+        """
+        self.mission_vars.extend(mission_vars)
+        self._check_mission_var_duplicates()
+        
+    def _get_mission_title(self):
+        """
+        Get the mission title from the mission_num
+        """
+        return f'Mission {self.mission_num}'
     
-    def init_base_variables(self):
+    def _get_mission_folder_name(self):
         """
-        Initializes the base variables.
+        Get the mission folder name from the mission_title
         """
-        from glider_ingest.variable import Variable
-        import glider_ingest.dataset_attrs as attrs
-
-        # Get all Variable objects dynamically
-        variables_list = [getattr(attrs, attr) for attr in dir(attrs) 
-                        if isinstance(getattr(attrs, attr), Variable)]
-        
-        self.add_variables(variables_list)
-
-    def setup(self):
+        return self._get_mission_title().replace(' ', '_')
+    
+    def _get_mission_folder_path(self):
         """
-        Initializes the mission data by setting up necessary attributes like mission date range,
-        year, glider information, WMO ID, mission title, and NetCDF filename.
-
-        This method should be called after initialization to configure the mission object fully.
+        Get the mission copy location from the mission_num
         """
-        self.get_mission_date_range()
-        self.get_mission_year_and_glider()
-        self.get_wmo_id()
-        self.get_mission_title()
-        self.get_nc_filename()
-        self.get_output_nc_path()
-
-    def get_file_locs(self):
+        return self.working_dir.joinpath(self._get_mission_folder_name())
+    
+    def _copy_files(self):
         """
-        Defines and sets the file locations for flight card and science card data, including caches.
-
-        This method checks for case-insensitivity in file path locations to ensure proper retrieval
-        of files, whether the case is uppercase or lowercase.
+        Copy the memory card copy files to the working directory
         """
-        def set_path_with_case(base_path: Path, *parts: str) -> Path:
-            """
-            Helper function to set the path while handling case-insensitivity.
+        original_loc = self.memory_card_copy_path
+        new_loc = self._get_mission_folder_path()
+        shutil.copytree(original_loc, new_loc, dirs_exist_ok=True)
 
-            Args:
-                base_path (Path): The base path to start with.
-                *parts (str): The path components to join with the base path.
-
-            Returns:
-                Path: The resulting path with the specified components.
-            """
-            path = base_path.joinpath(*parts)
-            if path.exists():
-                return path
-            return base_path.joinpath(*parts[:-1], parts[-1].upper())
-
-        self.fli_files_loc = set_path_with_case(self.memory_card_copy_loc, 'Flight_card', 'logs')
-        self.fli_cache_loc = set_path_with_case(self.memory_card_copy_loc, 'Flight_card', 'state', 'cache')
-        self.sci_files_loc = set_path_with_case(self.memory_card_copy_loc, 'Science_card', 'logs')
-        self.sci_cache_loc = set_path_with_case(self.memory_card_copy_loc, 'Science_card', 'state', 'cache')
-
-    def get_mission_date_range(self):
+    def _get_files_by_extension(self,directory_path: Path, extensions: list[str], as_string: bool = False) -> list:
         """
-        Sets the mission start and end dates if not provided. Default start date is '2010-01-01' and
-        the end date is set to one year after the current date.
-
-        This method ensures that if the mission dates are not provided, reasonable defaults are applied.
-        """
-        if self.mission_end_date is None:
-            self.mission_end_date = str(datetime.datetime.today().date() + datetime.timedelta(days=365))
-        if self.mission_start_date is None:
-            self.mission_start_date = '2010-01-01'
-
-    def get_mission_year_and_glider(self):
-        """
-        Extracts the mission year and glider details from a sample file.
-
-        This method identifies the year of the mission from the file name and validates the glider's name
-        or ID against a predefined list of possible values.
-        """
-        file = self._get_sample_file()
-        name = self._extract_full_filename(file)
-        self._parse_mission_year(name)
-        self._parse_and_validate_glider_name(name)
-        
-    def add_variables(self,variables:list[Variable],debug=False):
-        """Adds variables to the mission data.
+        Get files from a directory with specified extensions.
 
         Args:
-            variables (list): list of Variable objects to add to the mission data.
-        """
-        # Validate list of variables are of type Variable
-        if all(isinstance(var, str) for var in variables):
-            # Convert strings to Variable objects for basic implementation
-            variables = [Variable(data_source_name=var) for var in variables]
-        if not all(isinstance(var, Variable) for var in variables):
-            raise TypeError("All elements in the list must be of type Variable or string.")
-        # Add variables to mission_vars dictionary
-        if debug:
-            print(f"Adding variables: {[var.data_source_name for var in variables]}")
-        variables_dict = {var.data_source_name: var for var in variables}
-        self.mission_vars.update(variables_dict)
-        
-
-    def _get_sample_file(self):
-        """
-        Retrieves a sample file from the science card files directory.
+            directory_path (Path): Directory to search for files
+            extensions (list[str]): List of file extensions to match (e.g. ['.dbd', '.DBD'])
+            as_string (bool): Whether to return paths as strings
 
         Returns:
-            str: A path to a sample file from the science card directory.
+            list: List of matching files as Path objects or strings
         """
-        files = self.get_files(files_loc=self.sci_files_loc, extension='ebd')
-        return files[10]
-
-    def _extract_full_filename(self, file):
+        files = [p for p in directory_path.rglob('*') if p.suffix in extensions]
+        if as_string:
+            files = [str(p) for p in files]
+        return files
+        
+    def _get_cache_files(self,as_string:bool=False):
         """
-        Extracts the full filename from a given file based on specific content.
+        Get the cache files from the memory card copy
+        """
+        extensions = ['.cac','.CAC']
+        directory_path = self._get_mission_folder_path()
+        cac_files = self._get_files_by_extension(directory_path=directory_path,extensions=extensions,as_string=as_string)
+        return cac_files
 
+    def _get_cache_files_path(self):
+        """
+        Get the cache file path from the memory card copy
+        """
+        return self._get_mission_folder_path().joinpath('cache')
+
+    def _copy_cache_files(self):
+        """
+        Move the cache files to the working directory
+        """
+        cache_files = self._get_cache_files()
+        new_cache_loc = self._get_cache_files_path()
+        if not new_cache_loc.exists():
+            new_cache_loc.mkdir()
+        for cache_file in cache_files:
+            # check if cache file already exists
+            if new_cache_loc.joinpath(cache_file.name).exists():
+                continue
+            # copy cache file
+            new_cache_filename = new_cache_loc.joinpath(cache_file.name)
+            print(f'Coping {cache_file} to {new_cache_loc}')
+            shutil.copy2(cache_file, new_cache_filename)
+            
+    def _get_dbd_files(self,as_string=False):
+        """
+        Get the dbd files from the memory card copy
+        """
+        directory_path = self._get_mission_folder_path()
+        extensions = ['.dbd','.DBD','.ebd','.EBD']
+        dbd_files = self._get_files_by_extension(directory_path=directory_path,extensions=extensions,as_string=as_string)
+        return dbd_files
+        
+    def _read_dbd(self):
+        """
+        Read the files from the memory card copy
+        """
+        self._copy_files()
+        time.sleep(2)
+        self._copy_cache_files()
+        
+        filenames = self._get_dbd_files(as_string=True)
+        dbd = dbdreader.MultiDBD(filenames=filenames,cacheDir=self._get_cache_files_path())
+        return dbd
+    
+    def _get_dbd_variables(self,dbd,sci_vars=True,eng_vars=True) -> list:
+        """
+        Get the dbd variables from the files. Returns both sci and eng if both are true.
+        
+        If sci_vars and eng_vars are both False, raise a ValueError
+        
+        
+        Parameters
+        ----------
+        sci_vars : bool, optional
+        Whether to include science variables, default: True
+        eng_vars : bool, optional
+        Whether to include engineering variables, default: True
+        
+        Returns
+        -------
+        list
+        
+        Raises
+        ------
+        ValueError
+        If sci_vars and eng_vars are both False
+        """
+        sci_dbd_vars = dbd.parameterNames['sci']
+        eng_dbd_vars = dbd.parameterNames['eng']
+        all_dbd_vars = sci_dbd_vars + eng_dbd_vars
+        if sci_vars and not eng_vars:
+            return sci_dbd_vars
+        elif eng_vars and not sci_vars:
+            return eng_dbd_vars
+        elif sci_vars and eng_vars:
+            return all_dbd_vars
+        else:
+            raise ValueError('Must specify sci_vars and/or eng_vars')
+    
+    def _get_mission_variables(self,filter_out_none=False):
+        """
+        Get the mission variables from the mission_vars list. Filter out None data_source_name values if desired.
+        """
+        if filter_out_none:
+            return [var for var in self.mission_vars if var.data_source_name is not None]
+        else:
+            return self.mission_vars
+    
+    def _get_mission_variable_short_names(self,filter_out_none=False):
+        """
+        Get the mission variable data source names from the mission_vars list
+        """
+        return [var.short_name for var in self._get_mission_variables(filter_out_none=filter_out_none)]
+    
+    def _get_mission_variable_data_source_names(self,filter_out_none=False):
+        """
+        Get the mission variable data source names from the mission_vars list
+        """
+        return [var.data_source_name for var in self._get_mission_variables(filter_out_none=filter_out_none)]
+    
+    def _check_default_variables(self,dbd,variables_to_get:list):
+        """
+        Check that the default variables are in the dbd variables
+        """
+        dbd_vars = self._get_dbd_variables(dbd=dbd)
+        missing_vars = [var for var in variables_to_get if var not in dbd_vars]
+        if missing_vars:
+            raise ValueError(f'The following variables are missing from the dbd files: {missing_vars}')
+        
+    def _get_sci_files(self):
+        """
+        Get the sci files from the memory card copy
+        """
+        directory_path = self._get_mission_folder_path()
+        extensions = ['.dbd','.DBD']
+        sci_files = self._get_files_by_extension(directory_path=directory_path,extensions=extensions,as_string=True)
+        return sci_files
+        
+    def _get_random_sci_file(self):
+        """
+        Get a random sci file from the mission folder
+        """
+        sci_files = self._get_sci_files()
+        return random.choice(sci_files)
+        
+    def _get_full_filename_from_file(self,file):
+        """
+        Get the full filename from the file
         Args:
             file (str): Path to the file to read.
 
@@ -177,226 +247,91 @@ class Processor:
                 if 'full_filename' in line.strip():
                     return line.replace('full_filename:', '').strip()
         return None
-
-    def _parse_mission_year(self, name):
-        """
-        Parses the mission year from the full filename.
-
-        Args:
-            name (str): The full filename string.
-        """
-        self.mission_year = name[name.find('-') + 1: find_nth(name, '-', 2)].strip()
-
-    def _parse_and_validate_glider_name(self, name):
-        """
-        Parses and validates the glider name from the mission file name.
-
-        Args:
-            name (str): The full filename string.
-
-        Raises:
-            ValueError: If the glider name is not found or is invalid.
-        """
-        glider_name = name.split('-')[0].replace('unit_', '').strip()
         
-        inverted_glider_ids = {v: k for k, v in self.glider_ids.items()}
+    def _get_glider_id(self):
+        """
+        Get the glider id from the mission_vars list
+        """
+        file = self._get_random_sci_file()
+        fulll_filename = self._get_full_filename_from_file(self._get_mission_folder_path().joinpath('mission.txt'))
+        raise NotImplementedError
         
-        if glider_name in self.glider_ids:
-            self.glider_name = self.glider_ids[glider_name]
-            self.glider_id = glider_name
-            return
-            
-        if glider_name in inverted_glider_ids:
-            self.glider_name = glider_name
-            self.glider_id = inverted_glider_ids[glider_name]
-            return
-            
-        valid_options = list(self.glider_ids.keys()) + list(self.glider_ids.values())
-        raise ValueError(f'Invalid glider identifier: {glider_name}. Must be one of: {valid_options}')
-
-    def get_mission_title(self):
+    def _get_wmo_id(self):
         """
-        Sets the mission title if not provided. Defaults to 'Mission {mission_num}'.
-
-        This method ensures that if the mission title is not specified, a default title is generated
-        using the mission number.
+        Get the wmo id from the mission_vars list
         """
-        if self.mission_title is None:
-            self.mission_title = f'Mission {self.mission_num}'
-
-    def get_nc_filename(self):
-        """
-        Generates the NetCDF filename based on the mission number, year, and glider ID.
-
-        This method ensures that a valid filename is created if not provided.
-        """
-        if self.nc_filename is None:
-            self.nc_filename = f'M{self.mission_num}_{self.mission_year}_{self.glider_id}.nc'
-
-    def get_output_nc_path(self):
-        """
-        Determines the output NetCDF file path based on the working directory and mission title.
-
-        This method ensures that the directory exists and the file path is set up correctly.
-        """
-        if self.output_nc_path is None:
-            output_nc_loc = self.working_dir.joinpath(self.mission_title)
-            output_nc_loc.mkdir(exist_ok=True, parents=True)
-            self.output_nc_path = output_nc_loc.joinpath(self.nc_filename)
-        if isinstance(self.output_nc_path, str):
-            self.output_nc_path = Path(self.output_nc_path)
-        if isinstance(self.output_nc_path, Path):
-            if not self.output_nc_path.is_file():
-                self.output_nc_path.joinpath(self.nc_filename)
-
-    def get_wmo_id(self):
-        """
-        Retrieves the WMO identifier for the glider based on its ID.
-
-        If the WMO ID is not provided, it looks up the value from the `wmo_ids` dictionary.
-        """
-        if self.wmo_id is None:
-            self.wmo_id = self.wmo_ids[self.glider_id]
-
-    def get_files(self, files_loc: Path, extension: str):
-        if files_loc.exists():
-            try:
-                files = list(files_loc.rglob(f'*.{extension.lower()}'))
-                files = [str(file) for file in files]
-                if len(files) == 0:
-                    raise ValueError(f'No Files found at {files_loc.resolve()}')
-            except ValueError:
-                files = list(files_loc.rglob(f'*.{extension.upper()}'))
-                files = [str(file) for file in files]
-                if len(files) == 0:
-                    raise ValueError(f'No Files found at {files_loc.resolve()}')
-            return files
-        else:
-            raise ValueError(f'Path not found: {files_loc.resolve()}')
-        
-    def rename_mission_variables(self):
-        """
-        Renames mission-specific variables in the NetCDF dataset.
-        """
-        for key,variable in self.mission_vars.items():
-            if variable.data_source_name in self.ds_mission.data_vars.keys():
-                self.ds_mission = self.ds_mission.rename({variable.data_source_name: variable.short_name})
-            else:
-                print(f'{variable.data_source_name}:{variable.short_name} not in dataset')
-      
-    def add_gridded_data(self) -> None:
-        """
-        Add gridded data to the mission dataset using the Gridder class.
-
-        Notes
-        -----
-        This method creates a `Gridder` object to compute the gridded dataset,
-        updates the mission dataset with the gridded data, and prints timing information.
-        """
-        
-        print_time('Adding Gridded Data')
-        
-        # Create Gridder object with the mission dataset
-        gridder = Gridder(ds_mission=self.ds_mission)
-        
-        # Generate the gridded dataset 
-        gridder.create_gridded_dataset()
-        
-        # Update the mission dataset with the gridded dataset
-        self.ds_mission.update(gridder.ds_gridded)
-        
-        print_time('Finished Adding Gridded Data')
-
-        
-    def add_global_attrs(self):
-        self.ds_mission.attrs = {'Conventions': 'CF-1.6, COARDS, ACDD-1.3',
-        'acknowledgment': ' ',
-        'cdm_data_type': 'Profile',
-        'comment': 'time is the ctd_time from sci_m_present_time, m_time is the gps_time from m_present_time, g_time and g_pres are the grided time and pressure',
-        'contributor_name': 'Steven F. DiMarco',
-        'contributor_role': ' ',
-        'creator_email': 'sakib@tamu.edu, gexiao@tamu.edu',
-        'creator_institution': 'Texas A&M University, Geochemical and Environmental Research Group',
-        'creator_name': 'Sakib Mahmud, Xiao Ge',
-        'creator_type': 'persons',
-        'creator_url': 'https://gerg.tamu.edu/',
-        'date_created': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S'),
-        'date_issued': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S'),
-        'date_metadata_modified': '2023-09-15',
-        'date_modified': pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S'),
-        'deployment': ' ',
-        'featureType': 'profile',
-        'geospatial_bounds_crs': 'EPSG:4326',
-        'geospatial_bounds_vertical_crs': 'EPSG:5831',
-        'geospatial_lat_resolution': "{:.4e}".format(abs(np.nanmean(np.diff(self.ds_mission.latitude))))+ ' degree',
-        'geospatial_lat_units': 'degree_north',
-        'geospatial_lon_resolution': "{:.4e}".format(abs(np.nanmean(np.diff(self.ds_mission.longitude))))+ ' degree',
-        'geospatial_lon_units': 'degree_east',
-        'geospatial_vertical_positive': 'down',
-        'geospatial_vertical_resolution': ' ',
-        'geospatial_vertical_units': 'EPSG:5831',
-        'infoUrl': 'https://gerg.tamu.edu/',
-        'institution': 'Texas A&M University, Geochemical and Environmental Research Group',
-        'instrument': 'In Situ/Laboratory Instruments > Profilers/Sounders > CTD',
-        'instrument_vocabulary': 'NASA/GCMD Instrument Keywords Version 8.5',
-        'ioos_regional_association': 'GCOOS-RA',
-        'keywords': 'Oceans > Ocean Pressure > Water Pressure, Oceans > Ocean Temperature > Water Temperature, Oceans > Salinity/Density > Conductivity, Oceans > Salinity/Density > Density, Oceans > Salinity/Density > Salinity',
-        'keywords_vocabulary': 'NASA/GCMD Earth Sciences Keywords Version 8.5',
-        'license': 'This data may be redistributed and used without restriction.  Data provided as is with no expressed or implied assurance of quality assurance or quality control',
-        'metadata_link': ' ',
-        'naming_authority': 'org.gcoos.gandalf',
-        'ncei_template_version': 'NCEI_NetCDF_Trajectory_Template_v2.0',
-        'platform': 'In Situ Ocean-based Platforms > AUVS > Autonomous Underwater Vehicles',
-        'platform_type': 'Slocum Glider',
-        'platform_vocabulary': 'NASA/GCMD Platforms Keywords Version 8.5',
-        'processing_level': 'Level 0',
-        'product_version': '0.0',
-        'program': ' ',
-        'project': ' ',
-        'publisher_email': 'sdimarco@tamu.edu',
-        'publisher_institution': 'Texas A&M University, Geochemical and Environmental Research Group',
-        'publisher_name': 'Steven F. DiMarco',
-        'publisher_url': 'https://gerg.tamu.edu/',
-        'references': ' ',
-        'sea_name': 'Gulf of Mexico',
-        'standard_name_vocabulary': 'CF Standard Name Table v27',
-        'summary': 'Merged dataset for GERG future usage.',
-        'time_coverage_resolution': ' ',
-        'wmo_id': self.wmo_id,
-        'uuid': str(uuid.uuid4()),
-        'history': 'dbd and ebd files transferred from dbd2asc on 2023-09-15, merged into single netCDF file on '+pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S'),
-        'title': self.mission_title,
-        'source': 'Observational Slocum glider data from source ebd and dbd files',
-        'geospatial_lat_min': str(np.nanmin(self.ds_mission.latitude[np.where(self.ds_mission.latitude.values<29.5)].values)),
-        'geospatial_lat_max': str(np.nanmax(self.ds_mission.latitude[np.where(self.ds_mission.latitude.values<29.5)].values)),
-        'geospatial_lon_min': str(np.nanmin(self.ds_mission.longitude.values)),
-        'geospatial_lon_max': str(np.nanmax(self.ds_mission.longitude.values)),
-        'geospatial_bounds': get_polygon_coords(self.ds_mission),
-        'geospatial_vertical_min': str(np.nanmin(self.ds_mission.depth[np.where(self.ds_mission.depth>0)].values)),
-        'geospatial_vertical_max': str(np.nanmax(self.ds_mission.depth.values)),
-        'time_coverage_start': str(self.ds_mission.time[-1].values)[:19],
-        'time_coverage_end': str(self.ds_mission.m_time[-1].values)[:19],
-        'time_coverage_duration': 'PT'+str((self.ds_mission.m_time[-1].values - self.ds_mission.time[-1].values) / np.timedelta64(1, 's'))+'S'}
+        raise NotImplementedError
     
+    def _get_dbd_data(self):
+        dbd = self._read_dbd()
+        variables_to_get = self._get_mission_variable_data_source_names(filter_out_none=True)
+        self._check_default_variables(dbd,variables_to_get)
+        data = dbd.get_sync(*variables_to_get)
+        dbd.close()
+        return data
+    
+    def _format_time(self,df:pd.DataFrame):
+        # Convert time to datetime format and filter valid dates
+        df['time'] = pd.to_datetime(df['time'],unit='s', errors='coerce')
+        df = df.dropna(how='all')
+        valid_dates_mask = (df['time'] >= self.mission_start_date) & \
+                           (df['time'] <= self.mission_end_date)
+        df = df.loc[valid_dates_mask]
+        return df
+        
+    def _calculate_vars(self,df):
+        # Perform variable conversions and calculations
+        df['m_pressure'] *= 10  # Convert pressure from db to dbar
+        df['sci_water_pressure'] *= 10  # Convert pressure from db to dbar
+        df['salinity'] = gsw.SP_from_C(df['sci_water_cond'] * 10, df['sci_water_temp'], df['sci_water_pressure'])
+        CT = gsw.CT_from_t(df['salinity'], df['sci_water_temp'], df['sci_water_pressure'])
+        df['density'] = gsw.rho_t_exact(df['salinity'], CT, df['sci_water_pressure'])
+        return df
+    
+    def _get_dbd_dataframe(self):
+        """
+        Get the dbd data as a dataframe
+        """
+        data = self._get_dbd_data()
+        df = pd.DataFrame(data).T
+        new_column_names = ['time']
+        new_column_names.extend(self._get_mission_variable_data_source_names(filter_out_none=True))
+        if len(df.columns) != len(new_column_names):
+            raise ValueError(f'The number of columns in the dataframe does not match the number of mission variables, {df.columns} vs {new_column_names}')
+        # Add names to the dataframe columns
+        df.columns = new_column_names
+        # Format time
+        df = self._format_time(df)
+        # Calculate variables
+        df = self._calculate_vars(df)
+        # Set time as index
+        df = df.set_index('time')
+        return df
+    
+    def _convert_to_ds(self):
+        df = self._get_dbd_dataframe()
+        ds = xr.Dataset.from_dataframe(df)
+        return ds
+    
+    def _add_global_attrs(self):
+        from glider_ingest.dataset_attrs import get_global_attrs
+        global_attrs = get_global_attrs(wmo_id = self._get_wmo_id(),
+                                        mission_title=self._get_mission_title(),
+                                        longitude=self._get_longitude(),
+                                        latitude=self._get_latitude(),depth=self._get_depth(),
+                                        time=self._get_time())
+                                        
+    
+    def _add_attrs(self):
+        ''''''
+        
+    
+# Test the processor class
 
-    def add_attrs(self):
-        """Adds flight, science, and mission attributes to the dataset."""
-        # Get the mission dataset data_vars
-        variables = list(self.ds_mission.data_vars)
-        for var in self.mission_vars.values():
-            if var.short_name in variables:
-                self.ds_mission[var.short_name].attrs = var.to_dict()
-        
-        # Add platform attributes                
-        platform = Variable(
-            ancillary_variables='',
-            comment='',
-            id=self.glider_id,
-            instruments='instrument_ctd',
-            long_name='Slocum Glider '+ self.glider_id,
-            type='platform',
-            wmo_id=self.wmo_id,
-        )
-        self.ds_sci['platform'].attrs = platform.to_dict()
-        self.add_global_attrs()
-        
+memory_card_copy_path = Path('C:/Users/alecmkrueger/Documents/GERG/GERG_GitHub/GERG-Glider/Code/Packages/glider_ingest/src/tests/test_data/memory_card_copy')
+working_dir = Path('C:/Users/alecmkrueger/Documents/GERG/GERG_GitHub/GERG-Glider/Code/Packages/glider_ingest/src/tests/test_data/working_dir')
+
+processor = Processor(memory_card_copy_path=memory_card_copy_path,working_dir=working_dir,mission_num='46',mission_start_date='2024-06-28 02:58:28.873474121')
+
+ds = processor._convert_to_ds()
+ds
