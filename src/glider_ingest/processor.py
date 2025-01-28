@@ -4,12 +4,12 @@ import xarray as xr
 from pathlib import Path
 from attrs import define, field
 import datetime
-import uuid
 import dbdreader
 import shutil
 import gsw
 import time
 import random
+import os
 
 from glider_ingest.utils import get_polygon_coords,print_time
 from glider_ingest.variable import Variable
@@ -29,10 +29,16 @@ class Processor:
     # Default attributes
     mission_vars: list[Variable] = field(factory=list)
     # global_attrs: dict = field(default=None)  # found in get_global_attrs
+    glider_ids: dict = field(default={'199': 'Dora', '307': 'Reveille', '308': 'Howdy', '540': 'Stommel', '541': 'Sverdrup', '1148': 'unit_1148'})
+    wmo_ids: dict = field(default={'199': 'unknown', '307': '4801938', '308': '4801915', '540': '4801916', '541': '4801924', '1148': '4801915'})
     
     # Optional attributes
     mission_start_date: datetime.datetime = field(default=pd.to_datetime('2010-01-01'))  # Used to slice the data during processing
     mission_end_date: datetime.datetime = field(default=pd.to_datetime(datetime.datetime.today()+datetime.timedelta(days=365)))  # Used to slice the data during processing
+    
+    # Created attributes
+    df: pd.DataFrame = field(default=None)
+    ds: xr.Dataset = field(default=None)
     
     def __attrs_post_init__(self):
         """
@@ -231,9 +237,13 @@ class Processor:
         Get a random sci file from the mission folder
         """
         sci_files = self._get_sci_files()
-        return random.choice(sci_files)
+        random_file = random.choice(sci_files)
+        # Pick a new file if the file is empty
+        while os.stat(random_file).st_size == 0:
+            random_file = random.choice(sci_files)
+        return random_file
         
-    def _get_full_filename_from_file(self,file):
+    def _get_full_filename(self):
         """
         Get the full filename from the file
         Args:
@@ -242,6 +252,7 @@ class Processor:
         Returns:
             str: The extracted full filename, or None if not found.
         """
+        file = self._get_random_sci_file()
         with open(file, errors="ignore") as fp:
             for line in fp:
                 if 'full_filename' in line.strip():
@@ -250,17 +261,69 @@ class Processor:
         
     def _get_glider_id(self):
         """
-        Get the glider id from the mission_vars list
+        Get the glider id from the filename.
+        
+        Extracts and validates the glider identifier from the filename, converting between
+        glider names and IDs as needed using the glider_ids mapping.
+        
+        Returns
+        -------
+        str
+            The validated glider ID
+        
+        Raises
+        ------
+        ValueError
+            If the glider identifier is not found in the valid options
         """
-        file = self._get_random_sci_file()
-        fulll_filename = self._get_full_filename_from_file(self._get_mission_folder_path().joinpath('mission.txt'))
-        raise NotImplementedError
+        full_filename = self._get_full_filename()
+        glider_identifier = full_filename.split('-')[0].replace('unit_', '').strip()
+        
+        # Create reverse mapping from names to IDs
+        inverted_glider_ids = {v: k for k, v in self.glider_ids.items()}
+        
+        # Check if identifier is a valid ID
+        if glider_identifier in self.glider_ids:
+            return glider_identifier
+            
+        # Check if identifier is a valid name
+        if glider_identifier in inverted_glider_ids:
+            return inverted_glider_ids[glider_identifier]
+            
+        valid_options = list(self.glider_ids.keys()) + list(self.glider_ids.values())
+        raise ValueError(f'Invalid glider identifier: {glider_identifier}. Must be one of: {valid_options}')
+
+    def _get_glider_name(self):
+        """
+        Get the glider name from the glider ID.
+        
+        Uses the glider_ids mapping to convert the glider ID to its corresponding name.
+        
+        Returns
+        -------
+        str
+            The glider name
+        
+        Raises
+        ------
+        ValueError
+            If the glider ID is not found in the mapping
+        """
+        glider_id = self._get_glider_id()
+        
+        if glider_id in self.glider_ids:
+            return self.glider_ids[glider_id]
+            
+        valid_options = list(self.glider_ids.keys())
+        raise ValueError(f'Invalid glider ID: {glider_id}. Must be one of: {valid_options}')
+
         
     def _get_wmo_id(self):
         """
         Get the wmo id from the mission_vars list
         """
-        raise NotImplementedError
+        glider_id = self._get_glider_id()
+        return self.wmo_ids[glider_id]
     
     def _get_dbd_data(self):
         dbd = self._read_dbd()
@@ -288,7 +351,16 @@ class Processor:
         df['density'] = gsw.rho_t_exact(df['salinity'], CT, df['sci_water_pressure'])
         return df
     
-    def _get_dbd_dataframe(self):
+    def _update_dataframe_columns(self,df):
+        """
+        Update the dataframe columns with the mission variables.
+        Adjusting the current column names, which are data source names, to their short_name values.
+        """
+        column_map = {value.data_source_name: value.short_name for value in self.mission_vars}
+        df = df.rename(columns=column_map)
+        return df
+    
+    def _convert_dbd_to_dataframe(self):
         """
         Get the dbd data as a dataframe
         """
@@ -306,24 +378,52 @@ class Processor:
         df = self._calculate_vars(df)
         # Set time as index
         df = df.set_index('time')
-        return df
-    
-    def _convert_to_ds(self):
-        df = self._get_dbd_dataframe()
+        df = self._update_dataframe_columns(df)
+        self.df = df
+        return self.df
+
+    def _convert_df_to_ds(self):
+        df = self._convert_dbd_to_dataframe()
         ds = xr.Dataset.from_dataframe(df)
-        return ds
+        self.ds = ds
+        return self.ds
     
+    def _get_longitude(self):
+        return self.ds.longitude.values
+    
+    def _get_latitude(self):
+        return self.ds.latitude.values
+    
+    def _get_depth(self):
+        return self.ds.depth.values
+    
+    def _get_time(self):
+        return self.ds.time.values
+
     def _add_global_attrs(self):
         from glider_ingest.dataset_attrs import get_global_attrs
-        global_attrs = get_global_attrs(wmo_id = self._get_wmo_id(),
-                                        mission_title=self._get_mission_title(),
-                                        longitude=self._get_longitude(),
-                                        latitude=self._get_latitude(),depth=self._get_depth(),
-                                        time=self._get_time())
-                                        
+        global_attrs = get_global_attrs(wmo_id = self._get_wmo_id(),mission_title=self._get_mission_title(),
+                                        longitude=self._get_longitude(),latitude=self._get_latitude(),
+                                        depth=self._get_depth(),time=self._get_time())
+        
+        self.ds.attrs = global_attrs                                        
+        
+    def _add_variable_attrs(self):
+        for var in self.mission_vars:
+            self.ds[var.short_name].attrs = var.to_dict()
     
     def _add_attrs(self):
-        ''''''
+        # Add global attributes
+        self._add_global_attrs()
+        # Add variable attributes
+        self._add_variable_attrs()
+        
+    def process(self,return_ds=True):
+        self._convert_df_to_ds()
+        self._add_attrs()
+        if return_ds:
+            return self.ds
+        
         
     
 # Test the processor class
@@ -333,5 +433,5 @@ working_dir = Path('C:/Users/alecmkrueger/Documents/GERG/GERG_GitHub/GERG-Glider
 
 processor = Processor(memory_card_copy_path=memory_card_copy_path,working_dir=working_dir,mission_num='46',mission_start_date='2024-06-28 02:58:28.873474121')
 
-ds = processor._convert_to_ds()
+ds = processor.process()
 ds
