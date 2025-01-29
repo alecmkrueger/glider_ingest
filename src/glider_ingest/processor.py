@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import xarray as xr
 from pathlib import Path
@@ -11,7 +10,7 @@ import time
 import random
 import os
 
-from glider_ingest.utils import get_polygon_coords,print_time,find_nth
+from glider_ingest.utils import find_nth
 from glider_ingest.variable import Variable
 from glider_ingest.gridder import Gridder
 from glider_ingest.dataset_attrs import get_default_variables, get_global_attrs
@@ -450,7 +449,6 @@ class Processor:
         return self.ds.time.values
 
     def _add_global_attrs(self):
-        from glider_ingest.dataset_attrs import get_global_attrs
         global_attrs = get_global_attrs(wmo_id = self.wmo_id,mission_title=self.mission_title,
                                         longitude=self._get_longitude(),latitude=self._get_latitude(),
                                         depth=self._get_depth(),time=self._get_time())
