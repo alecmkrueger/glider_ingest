@@ -6,7 +6,12 @@ import pandas as pd
 import uuid
 
 # Flight Variables
-def get_default_variables():
+def get_default_variables(only_sci_variables:bool = False, only_eng_variables:bool = False):
+    
+    if only_eng_variables and only_sci_variables:
+        raise ValueError('Cannot specify both only sci and eng variables, if you want all defaults, set all to False')
+    
+    
     m_pressure = Variable(
         data_source_name='m_pressure',
         short_name='m_pressure',
@@ -17,7 +22,6 @@ def get_default_variables():
         comment='Alias for m_pressure',
         long_name='GPS Pressure',
         observation_type='measured',
-        platform='platform',
         positive='down',
         precision=0.01,
         reference_datum='sea-surface',
@@ -39,7 +43,6 @@ def get_default_variables():
         comment='Alias for m_depth',
         long_name='GPS Depth',
         observation_type='calculated',
-        platform='platform',
         positive='down',
         precision=0.01,
         reference_datum='sea-surface',
@@ -61,7 +64,6 @@ def get_default_variables():
         coordinate_reference_frame='urn:ogc:crs:EPSG::4326',
         long_name='Latitude',
         observation_type='calculated',
-        platform='platform',
         precision=5,
         reference_datum='WGS84',
         source_sensor='m_gps_lat',
@@ -81,7 +83,6 @@ def get_default_variables():
         coordinate_reference_frame='urn:ogc:crs:EPSG::4326',
         long_name='Longitude',
         observation_type='calculated',
-        platform='platform',
         precision=5,
         reference_datum='WGS84',
         source_sensor='m_gps_lon',
@@ -104,7 +105,6 @@ def get_default_variables():
         instrument='instrument_ctd',
         long_name='CTD Pressure',
         observation_type='measured',
-        platform='platform',
         positive='down',
         precision=0.01,
         reference_datum='sea-surface',
@@ -125,7 +125,6 @@ def get_default_variables():
         instrument='instrument_ctd',
         long_name='Temperature',
         observation_type='measured',
-        platform='platform',
         precision=0.001,
         resolution=0.001,
         standard_name='sea_water_temperature',
@@ -144,7 +143,6 @@ def get_default_variables():
         instrument='instrument_ctd',
         long_name='sci_water_cond',
         observation_type='measured',
-        platform='platform',
         precision=1e-05,
         resolution=1e-05,
         standard_name='sea_water_electrical_conductivity',
@@ -162,7 +160,6 @@ def get_default_variables():
         instrument='instrument_ctd',
         long_name='Salinity',
         observation_type='calculated',
-        platform='platform',
         precision='',
         resolution='',
         standard_name='sea_water_practical_salinity',
@@ -180,7 +177,6 @@ def get_default_variables():
         instrument='instrument_ctd',
         long_name='Density',
         observation_type='calculated',
-        platform='platform',
         precision='',
         resolution='',
         standard_name='sea_water_density',
@@ -198,7 +194,6 @@ def get_default_variables():
         instrument='instrument_flbbcd',
         long_name='Turbidity',
         observation_type='calculated',
-        platform='platform',
         precision='',
         resolution='',
         standard_name='sea_water_turbidity',
@@ -216,7 +211,6 @@ def get_default_variables():
         instrument='instrument_flbbcd',
         long_name='CDOM',
         observation_type='calculated',
-        platform='platform',
         precision='',
         resolution='',
         standard_name='concentration_of_colored_dissolved_organic_matter_in_sea_water',
@@ -234,7 +228,6 @@ def get_default_variables():
         instrument='instrument_flbbcd',
         long_name='Chlorophyll_a',
         observation_type='calculated',
-        platform='platform',
         precision='',
         resolution='',
         standard_name='mass_concentration_of_chlorophyll_a_in_sea_water',
@@ -252,7 +245,6 @@ def get_default_variables():
         instrument='instrument_ctd_modular_do_sensor',
         long_name='oxygen',
         observation_type='calculated',
-        platform='platform',
         precision='',
         resolution='',
         standard_name='moles_of_oxygen_per_unit_mass_in_sea_water',
@@ -262,7 +254,7 @@ def get_default_variables():
         to_grid=True
     )
     
-    default_variables = [
+    all_default_variables = [
         m_pressure,
         m_water_depth,
         m_latitude,
@@ -277,8 +269,38 @@ def get_default_variables():
         sci_flbbcd_chlor_units,
         sci_oxy4_oxygen
     ]
+
+    sci_default_variables = [
+        sci_water_pressure,
+        sci_water_temp,
+        sci_water_cond,
+        sci_water_sal,
+        sci_water_dens,
+        sci_flbbcd_bb_units,
+        sci_flbbcd_cdom_units,
+        sci_flbbcd_chlor_units,
+        sci_oxy4_oxygen
+    ]
+
+    eng_default_variables = [
+        m_pressure,
+        m_water_depth,
+        m_latitude,
+        m_longitude,
+    ]
     
-    return default_variables
+    # eng_default_variables = [
+    #     m_water_depth,
+    #     m_latitude,
+    #     m_longitude,
+    # ]
+    
+    if only_sci_variables:
+        return sci_default_variables
+    if only_eng_variables:
+        return eng_default_variables
+    
+    return all_default_variables
 
 def get_global_attrs(wmo_id:str,mission_title:str,longitude:np.ndarray,latitude:np.ndarray,depth:np.ndarray,time:np.ndarray):
     
