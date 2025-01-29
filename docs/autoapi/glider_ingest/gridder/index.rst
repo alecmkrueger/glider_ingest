@@ -69,7 +69,7 @@ Module Contents
       Create the final xarray Dataset with all variables.
 
       Output variables:
-          - Gridded variables with 'g_' prefix
+          - Gridded variables with `'g_'` prefix
           - g_hc: Heat content in kJ cm^{-2}
           - g_phc: Potential heat content in kJ cm^{-2}
           - g_sp: Spiciness
