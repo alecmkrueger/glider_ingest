@@ -556,7 +556,7 @@ class Processor:
         self.ds.to_netcdf(save_path)
         return self.ds  
     
-# Test the processor class
+# # Test the processor class
 
 # memory_card_copy_path = Path('C:/Users/alecmkrueger/Documents/GERG/GERG_GitHub/GERG-Glider/Code/Packages/glider_ingest/src/tests/test_data/memory_card_copy')
 # working_dir = Path('C:/Users/alecmkrueger/Documents/GERG/GERG_GitHub/GERG-Glider/Code/Packages/glider_ingest/src/tests/test_data/working_dir')
@@ -568,11 +568,10 @@ class Processor:
 # processor.process()
 
 # import gerg_plotting as gp
-# from gerg_plotting.tools import interp_glider_lat_lon
 
-# data = gp.data_from_ds(interp_glider_lat_lon(processor.ds,custom_vars='sci_m_spare_heap'))
+# data = gp.data_from_ds(processor.ds,interp_glider=True,custom_vars='sci_m_spare_heap')
 
-# gp.ScatterPlot(data).hovmoller('sci_m_spare_heap')
+# gp.ScatterPlot(data).TS(color_var='depth')
 
 
 
