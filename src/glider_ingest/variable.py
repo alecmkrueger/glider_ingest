@@ -97,26 +97,7 @@ class Variable:
     def calculated(self, value):
         self._calculated = value
 
-
-    # def __attrs_post_init__(self):
-    #     """
-    #     Post-initialization method to set the wmo_id attribute based on the id attribute.
-    #     """
-    #     if self.short_name is None and self.data_source_name is None:
-    #         raise ValueError('Either the short_name or data_source_name attribute must be set.')
-    #     # Generate update_time, long_name, and wmo_id if not given
-    #     # Add current time to update_time if it was not given
-    #     if self.update_time is None:
-    #         self.update_time = pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')
-    #     # Generate the long_name from the id if given
-    #     if (self.long_name is None) & (self.id is not None):
-    #         self.long_name = f'Slocum Glider {self.id}'
-    #     # Generate the wmo_id from the id if given
-    #     if (self.wmo_id is None) & (self.id is not None):
-    #         self.wmo_id = get_wmo_id(self.id)
-    #     if self.short_name is None:
-    #         self.short_name = self.data_source_name
-            
+           
     def _filter_out_keys(self):
         """
         Filter out keys from the Variable object that are None.
