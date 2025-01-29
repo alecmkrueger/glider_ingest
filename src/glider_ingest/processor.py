@@ -35,7 +35,8 @@ class Processor:
     mission_end_date: datetime.datetime = field(default=pd.to_datetime(datetime.datetime.today()+datetime.timedelta(days=365)))  # Used to slice the data during processing
     
     # Created attributes
-    df: pd.DataFrame = field(default=None)
+    dbd: dbdreader.MultiDBD = field(default=None)
+    _df: pd.DataFrame = field(default=None)
     ds: xr.Dataset = field(default=None)
     
     # Private backing fields
@@ -48,6 +49,43 @@ class Processor:
     _mission_folder_path: Path = field(default=None)
     _netcdf_filename: str = field(default=None)
     _netcdf_output_path: Path = field(default=None)
+    _dbd_variables: list = field(default=None)
+    _sci_dbd_variables: list = field(default=None)
+    _eng_dbd_variables: list = field(default=None)
+    _sci_df: pd.DataFrame = field(default=None)
+    _eng_df: pd.DataFrame = field(default=None)
+    _sci_ds: xr.Dataset = field(default=None)
+    _eng_ds: xr.Dataset = field(default=None)
+    
+
+    @property
+    def dbd_variables(self) -> list:
+        return self.sci_dbd_vars + self.eng_dbd_vars
+    
+    @property
+    def sci_dbd_vars(self) -> list:
+        """Get the science DBD variables."""
+        if self.dbd is None:
+            self.dbd = self._read_dbd()
+        return self.dbd.parameterNames['sci']
+    
+    @property
+    def eng_dbd_vars(self) -> list:
+        """Get the engineering DBD variables."""
+        if self.dbd is None:
+            self.dbd = self._read_dbd()
+        return self.dbd.parameterNames['eng']
+    
+    @property
+    def eng_vars(self) -> list:
+        """Get engineering variables (non-calculated vars starting with 'm_')"""
+        return [var.short_name for var in self.mission_vars 
+                if (not var.calculated) and (var.data_source_name.startswith('m_'))]
+    
+    @property
+    def sci_vars(self) -> list:
+        """Get science variables (all non-engineering variables)"""
+        return self.df.columns.drop(self.eng_vars)
 
     @property
     def glider_id(self):
@@ -111,7 +149,30 @@ class Processor:
         if self._netcdf_output_path is None:
             self._netcdf_output_path = self.mission_folder_path.joinpath(f'{self.netcdf_filename}')
         return self._netcdf_output_path
+    
+    @property
+    def df(self):
+        if self._df is None:
+            self._df = self._convert_dbd_to_dataframe()
+        return self._df
+    
+    @property
+    def sci_df(self):
+        return self.df[self.sci_vars]
 
+    @property 
+    def eng_df(self):
+        eng_df = self.df[self.eng_vars].copy()
+        eng_df.index.name = 'm_time'
+        return eng_df
+
+    @property
+    def sci_ds(self):
+        return xr.Dataset.from_dataframe(self.sci_df)
+
+    @property
+    def eng_ds(self):
+        return xr.Dataset.from_dataframe(self.eng_df)
     
     def __attrs_post_init__(self):
         """
@@ -129,15 +190,48 @@ class Processor:
         if len(set(var_names)) != len(var_names):
             print('Duplicate variables in mission_vars list')
         
-    def add_mission_vars(self, mission_vars: list[Variable]):
+    def add_mission_vars(self, mission_vars: list[Variable]|list[str]|Variable|str):
         """
-        Add a variable to the mission_vars list
-        """
-        if all(isinstance(var, str) for var in mission_vars):
-            mission_vars = [Variable(data_source_name=var) for var in mission_vars]
-        self.mission_vars.extend(mission_vars)
-        self._check_mission_var_duplicates()
+        Add variables to the mission_vars list.
         
+        Args:
+            mission_vars: Can be any of:
+            - Single Variable object
+            - Single string
+            - List of Variable objects
+            - List of strings
+            - Mixed list of Variables and strings
+        """
+        # Convert to list if single item
+        if not isinstance(mission_vars, list):
+            mission_vars = [mission_vars]
+            
+        # Process each variable
+        processed_vars = []
+        for var in mission_vars:
+            if isinstance(var, str):
+                processed_vars.append(Variable(data_source_name=var))
+            elif isinstance(var, Variable):
+                processed_vars.append(var)
+                
+        self.mission_vars.extend(processed_vars)
+        self._check_mission_var_duplicates()
+    
+    def remove_mission_vars(self, vars_to_remove: list[str]|str):
+        """
+        Remove variables from mission_vars list by data source name.
+        
+        Args:
+            vars_to_remove: Can be a single string or list of strings representing 
+                        data_source_names to remove
+        """
+        # Convert single string to list
+        if isinstance(vars_to_remove, str):
+            vars_to_remove = [vars_to_remove]
+            
+        # Filter out the variables to remove
+        self.mission_vars = [var for var in self.mission_vars 
+                            if var.data_source_name not in vars_to_remove]    
    
     def _copy_files(self):
         """
@@ -226,40 +320,12 @@ class Processor:
         Read the files from the memory card copy
         """
         self._copy_files()
-        time.sleep(2)
         self._copy_cache_files()
         
         filenames = self._get_dbd_files(as_string=True)
-        dbd = dbdreader.MultiDBD(filenames=filenames,cacheDir=self._get_cache_files_path())
+        cacheDir = self._get_cache_files_path()
+        dbd = dbdreader.MultiDBD(filenames=filenames,cacheDir=cacheDir)
         return dbd
-    
-    def _get_dbd_variables(self,dbd) -> list:
-        """
-        Get the dbd variables from the files. Returns both sci and eng if both are true.
-        
-        If sci_vars and eng_vars are both False, raise a ValueError
-        
-        
-        Parameters
-        ----------
-        sci_vars : bool, optional
-        Whether to include science variables, default: True
-        eng_vars : bool, optional
-        Whether to include engineering variables, default: True
-        
-        Returns
-        -------
-        list
-        
-        Raises
-        ------
-        ValueError
-        If sci_vars and eng_vars are both False
-        """
-        sci_dbd_vars = dbd.parameterNames['sci']
-        eng_dbd_vars = dbd.parameterNames['eng']
-        all_dbd_vars = sci_dbd_vars + eng_dbd_vars
-        return all_dbd_vars
     
     def _get_mission_variables(self,filter_out_none=False):
         """
@@ -282,14 +348,17 @@ class Processor:
         """
         return [var.data_source_name for var in self._get_mission_variables(filter_out_none=filter_out_none)]
     
-    def _check_default_variables(self,dbd,variables_to_get:list):
+    def _check_default_variables(self,variables_to_get:list):
         """
         Check that the default variables are in the dbd variables
         """
-        dbd_vars = self._get_dbd_variables(dbd=dbd)
+        dbd_vars = self.dbd_variables
         missing_vars = [var for var in variables_to_get if var not in dbd_vars]
         if missing_vars:
-            print(f'The following variables are missing from the dbd files: {missing_vars}')
+            print(f'The following variables are missing from the dbd files: {missing_vars}. Removing them from the list of variables to get.')
+            variables_to_get = [var for var in variables_to_get if var not in missing_vars]
+        
+        return variables_to_get
         
     def _get_sci_files(self):
         """
@@ -374,11 +443,11 @@ class Processor:
         return None
     
     def _get_dbd_data(self):
-        dbd = self._read_dbd()
+        self.dbd = self._read_dbd()
         variables_to_get = self._get_mission_variable_data_source_names(filter_out_none=True)
-        self._check_default_variables(dbd,variables_to_get)
-        data = dbd.get_sync(*variables_to_get)
-        dbd.close()
+        variables_to_get = self._check_default_variables(variables_to_get)
+        data = self.dbd.get_sync(*variables_to_get)
+        self.dbd.close()
         return data
     
     def _format_time(self,df:pd.DataFrame):
@@ -392,11 +461,17 @@ class Processor:
         
     def _calculate_vars(self,df):
         # Perform variable conversions and calculations
-        df['m_pressure'] *= 10  # Convert pressure from db to dbar
-        df['sci_water_pressure'] *= 10  # Convert pressure from db to dbar
-        df['salinity'] = gsw.SP_from_C(df['sci_water_cond'] * 10, df['sci_water_temp'], df['sci_water_pressure'])
-        CT = gsw.CT_from_t(df['salinity'], df['sci_water_temp'], df['sci_water_pressure'])
-        df['density'] = gsw.rho_t_exact(df['salinity'], CT, df['sci_water_pressure'])
+        if 'm_pressure' in df.columns:
+            df['m_pressure'] *= 10  # Convert pressure from db to dbar
+        if 'sci_water_pressure' in df.columns:
+            df['sci_water_pressure'] *= 10  # Convert pressure from db to dbar
+        if 'sci_water_cond' in df.columns:
+            df['sci_water_cond'] *= 1000  # Convert conductivity from mS/cm to S/m
+        vars_for_salinity_and_density = {'sci_water_cond', 'sci_water_temp', 'sci_water_pressure'}
+        if vars_for_salinity_and_density.issubset(df.columns):
+            df['salinity'] = gsw.SP_from_C(df['sci_water_cond'] * 10, df['sci_water_temp'], df['sci_water_pressure'])
+            CT = gsw.CT_from_t(df['salinity'], df['sci_water_temp'], df['sci_water_pressure'])
+            df['density'] = gsw.rho_t_exact(df['salinity'], CT, df['sci_water_pressure'])
         return df
     
     def _update_dataframe_columns(self,df):
@@ -427,13 +502,16 @@ class Processor:
         # Set time as index
         df = df.set_index('time')
         df = self._update_dataframe_columns(df)
-        self.df = df
-        return self.df
+        return df
     
-    def _convert_df_to_ds(self):
-        df = self._convert_dbd_to_dataframe()
-        ds = xr.Dataset.from_dataframe(df)
-        self.ds = ds
+    def _generate_ds(self):
+        """
+        Generate a xarray dataset from the dataframe
+        """
+        # self.ds = xr.Dataset.from_dataframe(self.df)
+        self.ds = xr.merge([self.sci_ds, self.eng_ds])
+        self._add_global_attrs()
+        self._add_variable_attrs()
         return self.ds
     
     def _get_longitude(self):
@@ -458,12 +536,6 @@ class Processor:
     def _add_variable_attrs(self):
         for var in self.mission_vars:
             self.ds[var.short_name].attrs = var.to_dict()
-    
-    def _add_attrs(self):
-        # Add global attributes
-        self._add_global_attrs()
-        # Add variable attributes
-        self._add_variable_attrs()
         
     def _add_gridded_data(self):
         '''Add gridded data to the dataset, must be called after adding attrs'''
@@ -471,8 +543,7 @@ class Processor:
         self.ds.update(ds_gridded)
 
     def process(self,return_ds=True):
-        self._convert_df_to_ds()
-        self._add_attrs()
+        self._generate_ds()
         self._add_gridded_data()
         if return_ds:
             return self.ds
@@ -483,15 +554,26 @@ class Processor:
         if save_path is None:
             save_path = self.netcdf_output_path
         self.ds.to_netcdf(save_path)
-        return self.ds
-        
+        return self.ds  
     
 # Test the processor class
 
-memory_card_copy_path = Path('C:/Users/alecmkrueger/Documents/GERG/GERG_GitHub/GERG-Glider/Code/Packages/glider_ingest/src/tests/test_data/memory_card_copy')
-working_dir = Path('C:/Users/alecmkrueger/Documents/GERG/GERG_GitHub/GERG-Glider/Code/Packages/glider_ingest/src/tests/test_data/working_dir')
+# memory_card_copy_path = Path('C:/Users/alecmkrueger/Documents/GERG/GERG_GitHub/GERG-Glider/Code/Packages/glider_ingest/src/tests/test_data/memory_card_copy')
+# working_dir = Path('C:/Users/alecmkrueger/Documents/GERG/GERG_GitHub/GERG-Glider/Code/Packages/glider_ingest/src/tests/test_data/working_dir')
 
-processor = Processor(memory_card_copy_path=memory_card_copy_path,working_dir=working_dir,mission_num='46',mission_start_date='2024-06-28 02:58:28.873474121')
+# processor = Processor(memory_card_copy_path=memory_card_copy_path,working_dir=working_dir,mission_num='46',mission_start_date='2024-06-28 02:58:28.873474121')
 
-ds = processor.save()
-ds
+# processor.add_mission_vars(['m_water_vx','sci_m_spare_heap'])
+
+# processor.process()
+
+# import gerg_plotting as gp
+# from gerg_plotting.tools import interp_glider_lat_lon
+
+# data = gp.data_from_ds(interp_glider_lat_lon(processor.ds,custom_vars='sci_m_spare_heap'))
+
+# gp.ScatterPlot(data).hovmoller('sci_m_spare_heap')
+
+
+
+
