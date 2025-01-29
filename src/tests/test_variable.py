@@ -8,6 +8,10 @@ class TestVariable(unittest.TestCase):
         self.assertIsNone(var.data_source_name)
         self.assertEqual(var.type, 'platform')
         self.assertIsNone(var.id)
+        
+    def test_no_short_name_or_data_source_name(self):
+        with self.assertRaises(ValueError):
+            Variable()
 
     def test_variable_with_data(self):
         var = Variable(

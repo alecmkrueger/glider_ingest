@@ -234,7 +234,7 @@ class Processor:
         dbd = dbdreader.MultiDBD(filenames=filenames,cacheDir=self._get_cache_files_path())
         return dbd
     
-    def _get_dbd_variables(self,dbd,sci_vars=True,eng_vars=True) -> list:
+    def _get_dbd_variables(self,dbd) -> list:
         """
         Get the dbd variables from the files. Returns both sci and eng if both are true.
         
@@ -260,14 +260,7 @@ class Processor:
         sci_dbd_vars = dbd.parameterNames['sci']
         eng_dbd_vars = dbd.parameterNames['eng']
         all_dbd_vars = sci_dbd_vars + eng_dbd_vars
-        if sci_vars and not eng_vars:
-            return sci_dbd_vars
-        elif eng_vars and not sci_vars:
-            return eng_dbd_vars
-        elif sci_vars and eng_vars:
-            return all_dbd_vars
-        else:
-            raise ValueError('Must specify sci_vars and/or eng_vars')
+        return all_dbd_vars
     
     def _get_mission_variables(self,filter_out_none=False):
         """
