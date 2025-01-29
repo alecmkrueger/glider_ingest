@@ -10,12 +10,12 @@ class Variable:
     """
     # Required attributes
     data_source_name: str|None = field(default=None)  # Name of the variable in the data source
-    short_name: str|None = field(default=None)  # Name of the variable in the dataset, if it is changed from the data source
+    _short_name: str|None = field(default=None)  # Name of the variable in the dataset, if it is changed from the data source
     # Optional attributes
     accuracy: float|None = field(default=None)
     ancillary_variables: str|None = field(default=None)
     instrument: str|None = field(default=None)
-    long_name: str|None = field(default=None)  
+    _long_name: str|None = field(default=None)  
     observation_type: str|None = field(default=None)
     resolution: str|None|float = field(default=None)
     axis: str|None = field(default=None)
@@ -31,7 +31,7 @@ class Variable:
     units: str|None = field(default=None)
     valid_max: str|None|float = field(default=None)
     valid_min: str|None|float = field(default=None)
-    update_time: str|None = field(default=None)
+    _update_time: str|None = field(default=None)
     coordinate_reference_frame: str|None = field(default=None)
     source: str|None = field(default=None)  # Where the gridded variable came from
     
@@ -43,29 +43,79 @@ class Variable:
     
     # Glider specific attributes
     id: str|None = field(default=None)
-    wmo_id: str|None = field(default=None)
+    _wmo_id: str|None = field(default=None)
     instruments: str|None = field(default=None)
     type: str|None = field(default='platform')
 
+    @property 
+    def update_time(self) -> str:
+        if self._update_time is None:
+            return pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')
+        return self._update_time
+    
+    @update_time.setter
+    def update_time(self, value):
+        self._update_time = value
 
-    def __attrs_post_init__(self):
-        """
-        Post-initialization method to set the wmo_id attribute based on the id attribute.
-        """
-        if self.short_name is None and self.data_source_name is None:
-            raise ValueError('Either the short_name or data_source_name attribute must be set.')
-        # Generate update_time, long_name, and wmo_id if not given
-        # Add current time to update_time if it was not given
-        if self.update_time is None:
-            self.update_time = pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')
-        # Generate the long_name from the id if given
-        if (self.long_name is None) & (self.id is not None):
-            self.long_name = f'Slocum Glider {self.id}'
-        # Generate the wmo_id from the id if given
-        if (self.wmo_id is None) & (self.id is not None):
-            self.wmo_id = get_wmo_id(self.id)
-        if self.short_name is None:
-            self.short_name = self.data_source_name
+    @property
+    def long_name(self) -> str:
+        if self._long_name is None and self.id is not None:
+            return f'Slocum Glider {self.id}'
+        return self._long_name
+    
+    @long_name.setter 
+    def long_name(self, value):
+        self._long_name = value
+
+    @property
+    def wmo_id(self) -> str:
+        if self._wmo_id is None and self.id is not None:
+            return get_wmo_id(self.id)
+        return self._wmo_id
+    
+    @wmo_id.setter
+    def wmo_id(self, value):
+        self._wmo_id = value
+
+    @property
+    def short_name(self) -> str:
+        if self._short_name is None:
+            return self.data_source_name
+        return self._short_name
+    
+    @short_name.setter
+    def short_name(self, value):
+        self._short_name = value
+        
+    @property
+    def calculated(self) -> bool:
+        if self.data_source_name is None:
+            return True
+        return False
+
+    @calculated.setter
+    def calculated(self, value):
+        self._calculated = value
+
+
+    # def __attrs_post_init__(self):
+    #     """
+    #     Post-initialization method to set the wmo_id attribute based on the id attribute.
+    #     """
+    #     if self.short_name is None and self.data_source_name is None:
+    #         raise ValueError('Either the short_name or data_source_name attribute must be set.')
+    #     # Generate update_time, long_name, and wmo_id if not given
+    #     # Add current time to update_time if it was not given
+    #     if self.update_time is None:
+    #         self.update_time = pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')
+    #     # Generate the long_name from the id if given
+    #     if (self.long_name is None) & (self.id is not None):
+    #         self.long_name = f'Slocum Glider {self.id}'
+    #     # Generate the wmo_id from the id if given
+    #     if (self.wmo_id is None) & (self.id is not None):
+    #         self.wmo_id = get_wmo_id(self.id)
+    #     if self.short_name is None:
+    #         self.short_name = self.data_source_name
             
     def _filter_out_keys(self):
         """
