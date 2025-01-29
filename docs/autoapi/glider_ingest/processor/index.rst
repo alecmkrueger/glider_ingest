@@ -1,33 +1,18 @@
-glider_ingest
-=============
+glider_ingest.processor
+=======================
 
-.. py:module:: glider_ingest
-
-.. autoapi-nested-parse::
-
-   AUTHORS:
-   - Alec Krueger, Texas A&M University, Geochemical and Environmental Research Group, alecmkrueger@tamu.edu.
-   - Xiao Ge, Texas A&M University, Geochemical and Environmental Research Group, gexiao@tamu.edu.
-   - Sakib Mahmud, Texas A&M University, Geochemical and Environmental Research Group, sakib@tamu.edu.
+.. py:module:: glider_ingest.processor
 
 
-   Module to ingest and process raw glider data into NetCDF files
-
-
-
-Submodules
+Attributes
 ----------
 
-.. toctree::
-   :maxdepth: 1
+.. autoapisummary::
 
-   /autoapi/glider_ingest/dataset_attrs/index
-   /autoapi/glider_ingest/example/index
-   /autoapi/glider_ingest/gridded_attrs/index
-   /autoapi/glider_ingest/gridder/index
-   /autoapi/glider_ingest/processor/index
-   /autoapi/glider_ingest/utils/index
-   /autoapi/glider_ingest/variable/index
+   glider_ingest.processor.ds
+   glider_ingest.processor.memory_card_copy_path
+   glider_ingest.processor.processor
+   glider_ingest.processor.working_dir
 
 
 Classes
@@ -35,12 +20,11 @@ Classes
 
 .. autoapisummary::
 
-   glider_ingest.Processor
-   glider_ingest.Variable
+   glider_ingest.processor.Processor
 
 
-Package Contents
-----------------
+Module Contents
+---------------
 
 .. py:class:: Processor
 
@@ -403,138 +387,11 @@ Package Contents
       :type:  pathlib.Path
 
 
-.. py:class:: Variable
+.. py:data:: ds
 
-   A class to represent a variable in a glider mission dataset.
+.. py:data:: memory_card_copy_path
 
+.. py:data:: processor
 
-   .. py:method:: __attrs_post_init__()
-
-      Post-initialization method to set the wmo_id attribute based on the id attribute.
-
-
-
-   .. py:method:: _filter_out_keys()
-
-      Filter out keys from the Variable object that are None.
-
-
-
-   .. py:method:: to_dict()
-
-      Convert the Variable object to a dictionary, sorted by key and filtered out None values.
-
-
-
-   .. py:attribute:: accuracy
-      :type:  float | None
-
-
-   .. py:attribute:: ancillary_variables
-      :type:  str | None
-
-
-   .. py:attribute:: axis
-      :type:  str | None
-
-
-   .. py:attribute:: bytes
-      :type:  str | None | int
-
-
-   .. py:attribute:: comment
-      :type:  str | None
-
-
-   .. py:attribute:: coordinate_reference_frame
-      :type:  str | None
-
-
-   .. py:attribute:: data_source_name
-      :type:  str | None
-
-
-   .. py:attribute:: id
-      :type:  str | None
-
-
-   .. py:attribute:: instrument
-      :type:  str | None
-
-
-   .. py:attribute:: instruments
-      :type:  str | None
-
-
-   .. py:attribute:: long_name
-      :type:  str | None
-
-
-   .. py:attribute:: observation_type
-      :type:  str | None
-
-
-   .. py:attribute:: platform
-      :type:  str | None
-
-
-   .. py:attribute:: positive
-      :type:  str | None
-
-
-   .. py:attribute:: precision
-      :type:  str | None | float
-
-
-   .. py:attribute:: reference_datum
-      :type:  str | None
-
-
-   .. py:attribute:: resolution
-      :type:  str | None | float
-
-
-   .. py:attribute:: short_name
-      :type:  str | None
-
-
-   .. py:attribute:: source
-      :type:  str | None
-
-
-   .. py:attribute:: source_sensor
-      :type:  str | None
-
-
-   .. py:attribute:: standard_name
-      :type:  str | None
-
-
-   .. py:attribute:: to_grid
-      :type:  bool
-
-
-   .. py:attribute:: type
-      :type:  str | None
-
-
-   .. py:attribute:: units
-      :type:  str | None
-
-
-   .. py:attribute:: update_time
-      :type:  str | None
-
-
-   .. py:attribute:: valid_max
-      :type:  str | None | float
-
-
-   .. py:attribute:: valid_min
-      :type:  str | None | float
-
-
-   .. py:attribute:: wmo_id
-      :type:  str | None
-
+.. py:data:: working_dir
 

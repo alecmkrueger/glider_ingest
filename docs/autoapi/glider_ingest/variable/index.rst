@@ -26,6 +26,12 @@ Module Contents
 
 
 
+   .. py:method:: _filter_out_keys()
+
+      Filter out keys from the Variable object that are None.
+
+
+
    .. py:method:: to_dict()
 
       Convert the Variable object to a dictionary, sorted by key and filtered out None values.
@@ -104,12 +110,20 @@ Module Contents
       :type:  str | None
 
 
+   .. py:attribute:: source
+      :type:  str | None
+
+
    .. py:attribute:: source_sensor
       :type:  str | None
 
 
    .. py:attribute:: standard_name
       :type:  str | None
+
+
+   .. py:attribute:: to_grid
+      :type:  bool
 
 
    .. py:attribute:: type

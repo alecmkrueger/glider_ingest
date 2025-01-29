@@ -14,8 +14,9 @@ Functions
 
 .. autoapisummary::
 
-   glider_ingest.utils.add_gridded_data
+   glider_ingest.utils.f_print
    glider_ingest.utils.find_nth
+   glider_ingest.utils.get_polygon_bounds
    glider_ingest.utils.get_polygon_coords
    glider_ingest.utils.get_wmo_id
    glider_ingest.utils.invert_dict
@@ -26,25 +27,7 @@ Functions
 Module Contents
 ---------------
 
-.. py:function:: add_gridded_data(ds_mission: xarray.Dataset) -> xarray.Dataset
-
-   Add gridded data to a mission dataset using the Gridder class.
-
-   Parameters
-   ----------
-   ds_mission : xarray.Dataset
-       The mission dataset to process.
-
-   Returns
-   -------
-   xarray.Dataset
-       The updated dataset with gridded data added.
-
-   Notes
-   -----
-   This function creates a `Gridder` object to compute the gridded dataset,
-   updates the mission dataset with the gridded data, and prints timing information.
-
+.. py:function:: f_print(*args, return_string=False)
 
 .. py:function:: find_nth(haystack: str, needle: str, n: int) -> int
 
@@ -65,7 +48,12 @@ Module Contents
        The index of the nth occurrence of the substring, or -1 if not found.
 
 
-.. py:function:: get_polygon_coords(ds_mission: xarray.Dataset) -> str
+.. py:function:: get_polygon_bounds(longitude: numpy.ndarray, latitude: numpy.ndarray) -> list
+
+   Generate polygon coordinates for the dataset's global attributes.
+
+
+.. py:function:: get_polygon_coords(longitude: numpy.ndarray, latitude: numpy.ndarray, lat_max: float, lat_min: float, lon_max: float, lon_min: float) -> str
 
    Generate polygon coordinates for the dataset's global attributes.
 
