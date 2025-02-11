@@ -4,7 +4,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/alecmkrueger/glider-ingest">
-    <img src="https://github.com/alecmkrueger/glider_ingest/blob/f0d38149d6a8ee24902c2debbd7acf795263703c/.github/TAMU-GERG-Glider.jpg" alt="Logo" width="500" height="272">
+    <img src="https://github.com/alecmkrueger/glider_ingest/blob/99e983da8ed0793bda3c7aa53cb7b4f133a07ad9/.github/TAMU-GERG-Glider.jpg?raw=true" alt="Logo" width="500" height="272">
   </a>
 
 <h3 align="center">GERG Glider Ingest</h3>

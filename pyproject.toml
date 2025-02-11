@@ -42,6 +42,9 @@ pytest = "^8.2.2"
 faker = "^26.0.0"
 pytest-cov = "^6.0.0"
 
+[tool.poetry.build]
+script = "prebuild.py"
+
 [tool.pytest.ini_options]
 filterwarnings = [
     "ignore::DeprecationWarning",
