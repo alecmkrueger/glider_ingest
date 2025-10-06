@@ -21,6 +21,7 @@ Functions
    glider_ingest.utils.get_wmo_id
    glider_ingest.utils.invert_dict
    glider_ingest.utils.print_time
+   glider_ingest.utils.setup_logging
    glider_ingest.utils.timing
 
 
@@ -33,19 +34,15 @@ Module Contents
 
    Find the nth occurrence of a substring in a string.
 
-   Parameters
-   ----------
-   haystack : str
-       The string to search in.
-   needle : str
-       The substring to find.
-   n : int
-       The occurrence number of the substring to find.
+   :param haystack: The string to search in.
+   :type haystack: str
+   :param needle: The substring to find.
+   :type needle: str
+   :param n: The occurrence number of the substring to find.
+   :type n: int
 
-   Returns
-   -------
-   int
-       The index of the nth occurrence of the substring, or -1 if not found.
+   :returns: The index of the nth occurrence of the substring, or -1 if not found.
+   :rtype: int
 
 
 .. py:function:: get_polygon_bounds(longitude: numpy.ndarray, latitude: numpy.ndarray) -> list
@@ -57,23 +54,19 @@ Module Contents
 
    Generate polygon coordinates for the dataset's global attributes.
 
-   Parameters
-   ----------
-   ds_mission : xarray.Dataset
-       The mission dataset containing latitude and longitude values.
+   :param ds_mission: The mission dataset containing latitude and longitude values.
+   :type ds_mission: xarray.Dataset
 
-   Returns
-   -------
-   str
-       A string representation of the polygon in Well-Known Text (WKT) format.
+   :returns: A string representation of the polygon in Well-Known Text (WKT) format.
+   :rtype: str
 
-   Notes
-   -----
-   The polygon is constructed based on the northmost, eastmost, southmost, 
+   .. rubric:: Notes
+
+   The polygon is constructed based on the northmost, eastmost, southmost,
    and westmost points where latitude is below 29.5.
 
 
-.. py:function:: get_wmo_id(glider_id: str) -> str
+.. py:function:: get_wmo_id(glider_id: str | int) -> str
 
    Extract the WMO ID from a glider ID.
 
@@ -82,39 +75,41 @@ Module Contents
 
    Invert the keys and values of a dictionary.
 
-   Parameters
-   ----------
-   dict : dict
-       The dictionary to invert.
+   :param dict: The dictionary to invert.
+   :type dict: dict
 
-   Returns
-   -------
-   dict
-       A new dictionary with keys and values swapped.
+   :returns: A new dictionary with keys and values swapped.
+   :rtype: dict
 
 
 .. py:function:: print_time(message: str) -> None
 
    Print a message with the current time appended.
 
-   Parameters
-   ----------
-   message : str
-       The message to print.
+   :param message: The message to print.
+   :type message: str
 
-   Notes
-   -----
+   .. rubric:: Notes
+
    The current time is formatted as 'HH:MM:SS'.
+
+
+.. py:function:: setup_logging(level: str = 'INFO') -> None
+
+   Configure logging for the package. With specific name and format.
+
+   :param level: The logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL), by default 'INFO'
+   :type level: str, optional
 
 
 .. py:function:: timing(f)
 
    Time a function.
 
-   Args:
-       f (function): function to time
+   :param f: function to time
+   :type f: function
 
-   Returns:
-       wrapper: prints the time it took to run the function
+   :returns: prints the time it took to run the function
+   :rtype: wrapper
 
 

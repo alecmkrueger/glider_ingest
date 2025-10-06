@@ -81,7 +81,7 @@ class Processor:
 
     @property
     def eng_vars(self) -> list:
-        """Get engineering variables (non-calculated vars starting with 'm_')"""
+        """Get engineering variables (non-calculated vars starting with ``m_``)"""
         return [var.short_name for var in self.mission_vars
                 if (not var.calculated) and (var.data_source_name.startswith('m_'))]  #type: ignore
 

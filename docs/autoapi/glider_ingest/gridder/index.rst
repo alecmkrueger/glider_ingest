@@ -30,10 +30,23 @@ Module Contents
    Depends on the dataset having attributes
    ----------------------------------------
 
-   Attributes:
-       ds_mission (xr.Dataset): The input mission dataset to process.
-       interval_h (int | float): Time interval (in hours) for gridding.
-       interval_p (int | float): Pressure interval (in decibars) for gridding.
+   .. attribute:: ds_mission
+
+      The input mission dataset to process.
+
+      :type: xr.Dataset
+
+   .. attribute:: interval_h
+
+      Time interval (in hours) for gridding.
+
+      :type: int | float
+
+   .. attribute:: interval_p
+
+      Pressure interval (in decibars) for gridding.
+
+      :type: int | float
 
    Internal Attributes (initialized later):
        ds (xr.Dataset): A copy of the mission dataset with NaN pressures removed.
@@ -42,71 +55,6 @@ Module Contents
        lat, lon (np.ndarray): Mean latitude and longitude of the dataset.
        grid_pres, grid_time (np.ndarray): Pressure and time grids for interpolation.
        data_arrays (dict): Dictionary of initialized gridded variables.
-
-
-   .. py:method:: __attrs_post_init__()
-
-      Initializes the Gridder class by copying the mission dataset, filtering valid pressures,
-      extracting dataset dimensions, and initializing the time-pressure grid.
-
-
-
-   .. py:method:: _calculate_derived_quantities()
-
-      Calculate derived oceanographic quantities.
-
-      Computed quantities:
-          - Absolute salinity, conservative temperature, and potential temperature
-          - Specific heat capacity, spiciness, and depth
-      Derived quantities:
-          - Heat content (HC): :math:`\Delta Z \cdot C_p \cdot T \cdot \rho`
-          - Potential heat content (PHC): :math:`\Delta Z \cdot C_p \cdot (T - 26) \cdot \rho`, where values < 0 are set to NaN
-
-
-
-   .. py:method:: _create_output_dataset(hc, phc, spc, dep)
-
-      Create the final xarray Dataset with all variables.
-
-      Output variables:
-          - Gridded variables with `'g_'` prefix
-          - g_hc: Heat content in kJ cm^{-2}
-          - g_phc: Potential heat content in kJ cm^{-2}
-          - g_sp: Spiciness
-          - g_depth: Depth in meters
-
-
-
-   .. py:method:: _handle_pressure_duplicates(tds)
-
-      Handle duplicate pressure values by adding tiny offsets.
-
-      Steps:
-          - Identify duplicate pressure values
-          - Add small incremental offsets to make values unique
-          - Update time values to match new pressure values
-
-
-
-   .. py:method:: _interpolate_variables()
-
-      Interpolate variables to fixed pressure grid.
-
-      Steps:
-          - Select and process time slices
-          - Interpolate each variable onto the fixed pressure grid
-
-
-
-   .. py:method:: _process_time_slice(tds)
-
-      Process a single time slice of data.
-
-      Steps:
-          - Sort data by pressure
-          - Convert time coordinates to datetime64
-          - Set time values to pressure values
-
 
 
    .. py:method:: add_attrs()
@@ -122,12 +70,12 @@ Module Contents
 
       Ensures that the length of the input array is greater than the expected length.
 
-      Args:
-          values (list | np.ndarray): Input array to check.
-          expected_length (int): Minimum required length.
+      :param values: Input array to check.
+      :type values: list | np.ndarray
+      :param expected_length: Minimum required length.
+      :type expected_length: int
 
-      Raises:
-          ValueError: If the length of `values` is less than or equal to `expected_length`.
+      :raises ValueError: If the length of `values` is less than or equal to `expected_length`.
 
 
 
@@ -141,9 +89,10 @@ Module Contents
           3. Creating the final dataset with standardized dimensions
           4. Adding metadata attributes
 
-      Note:
-          Requires the `gsw` library for oceanographic calculations and assumes
-          that `self.data_arrays` and `self.int_time` are properly initialized.
+      .. note::
+
+         Requires the `gsw` library for oceanographic calculations and assumes
+         that `self.data_arrays` and `self.int_time` are properly initialized.
 
 
 
@@ -201,6 +150,11 @@ Module Contents
       :type:  numpy.ndarray
 
 
+   .. py:property:: logger
+
+      Get the logger instance for this gridder.
+
+
    .. py:attribute:: lon
       :type:  numpy.ndarray
 
@@ -218,10 +172,10 @@ Module Contents
 
 
    .. py:attribute:: xx
-      :type:  numpy.ndarray
+      :type:  int
 
 
    .. py:attribute:: yy
-      :type:  numpy.ndarray
+      :type:  int
 
 

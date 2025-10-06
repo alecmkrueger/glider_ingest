@@ -16,7 +16,7 @@ Functions
 Module Contents
 ---------------
 
-.. py:function:: get_default_variables()
+.. py:function:: get_default_variables(only_sci_variables: bool = False, only_eng_variables: bool = False)
 
 .. py:function:: get_global_attrs(wmo_id: str, mission_title: str, longitude: numpy.ndarray, latitude: numpy.ndarray, depth: numpy.ndarray, time: numpy.ndarray)
 

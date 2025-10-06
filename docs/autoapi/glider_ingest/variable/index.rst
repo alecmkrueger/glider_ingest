@@ -20,18 +20,6 @@ Module Contents
    A class to represent a variable in a glider mission dataset.
 
 
-   .. py:method:: __attrs_post_init__()
-
-      Post-initialization method to set the wmo_id attribute based on the id attribute.
-
-
-
-   .. py:method:: _filter_out_keys()
-
-      Filter out keys from the Variable object that are None.
-
-
-
    .. py:method:: to_dict()
 
       Convert the Variable object to a dictionary, sorted by key and filtered out None values.
@@ -52,6 +40,11 @@ Module Contents
 
    .. py:attribute:: bytes
       :type:  str | None | int
+
+
+   .. py:property:: calculated
+      :type: bool
+
 
 
    .. py:attribute:: comment
@@ -78,8 +71,9 @@ Module Contents
       :type:  str | None
 
 
-   .. py:attribute:: long_name
-      :type:  str | None
+   .. py:property:: long_name
+      :type: str | None
+
 
 
    .. py:attribute:: observation_type
@@ -106,8 +100,9 @@ Module Contents
       :type:  str | None | float
 
 
-   .. py:attribute:: short_name
-      :type:  str | None
+   .. py:property:: short_name
+      :type: str | None
+
 
 
    .. py:attribute:: source
@@ -123,7 +118,7 @@ Module Contents
 
 
    .. py:attribute:: to_grid
-      :type:  bool
+      :type:  bool | str
 
 
    .. py:attribute:: type
@@ -134,8 +129,9 @@ Module Contents
       :type:  str | None
 
 
-   .. py:attribute:: update_time
-      :type:  str | None
+   .. py:property:: update_time
+      :type: str
+
 
 
    .. py:attribute:: valid_max
@@ -146,7 +142,8 @@ Module Contents
       :type:  str | None | float
 
 
-   .. py:attribute:: wmo_id
-      :type:  str | None
+   .. py:property:: wmo_id
+      :type: str | None
+
 
 
