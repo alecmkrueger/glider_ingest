@@ -19,12 +19,15 @@ author = 'Alec Krueger'
 
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.viewcode',
+    'sphinx.ext.viewcode', 
     'sphinx.ext.todo',
     'sphinx.ext.napoleon',
     'autoapi.extension',
     'sphinx.ext.inheritance_diagram'
 ]
+
+# Disable conflicting extensions
+autoapi_ignore = ['*/migrations/*']
 
 autoapi_dirs = ['../src']
 autoapi_type = 'python'
@@ -34,7 +37,6 @@ autoapi_options = [
     'members',
     'undoc-members',
     'show-inheritance',
-    'show-module-summary',
 ]
 
 # Suppress warnings for missing references and duplicates
@@ -49,6 +51,9 @@ autoapi_generate_api_docs = True
 # Additional AutoAPI settings to handle duplicates and improve output
 autoapi_python_class_content = 'class'
 autoapi_add_toctree_entry = True
+
+# Disable autosummary to prevent conflicts with autoapi
+autosummary_generate = False
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
