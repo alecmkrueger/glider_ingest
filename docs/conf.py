@@ -61,7 +61,7 @@ autoapi_python_class_content = 'class'
 autoapi_add_toctree_entry = False  # We're adding it manually to the toctree
 
 # Disable autosummary to prevent conflicts with autoapi
-autosummary_generate = True
+autosummary_generate = False
 
 # Ensure AutoAPI root doc is generated
 autoapi_root = 'autoapi'

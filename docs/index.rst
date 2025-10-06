@@ -16,5 +16,5 @@ documentation for details.
    :caption: Contents:
 
    examples/index
-   .. autoapi/index
+   autoapi/glider_ingest/index
 
