@@ -5,7 +5,13 @@
 
 import os
 import sys
+
+# Add the src directory to Python path for AutoAPI
 sys.path.insert(0, os.path.abspath('../src'))
+sys.path.insert(0, os.path.abspath('../'))
+
+# Mock imports for ReadTheDocs if needed
+autodoc_mock_imports = []
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -26,13 +32,15 @@ extensions = [
     'sphinx.ext.inheritance_diagram'
 ]
 
-# Disable conflicting extensions
-autoapi_ignore = ['*/migrations/*']
-
+# AutoAPI configuration
 autoapi_dirs = ['../src']
 autoapi_type = 'python'
-autoapi_template_dir = '_templates'
 autoapi_member_order = 'groupwise'
+autoapi_ignore = [
+    '*/migrations/*',
+    '*/__pycache__/*',
+    '*/.*'
+]
 autoapi_options = [
     'members',
     'undoc-members',
