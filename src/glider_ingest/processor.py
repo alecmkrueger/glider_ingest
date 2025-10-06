@@ -203,7 +203,7 @@ class Processor:
         self.logger.debug("Working directory: %s", self.working_dir)
 
         self.add_mission_vars(get_default_variables())
-        self.logger.info("Added %d default variables", len(get_default_variables()))
+        self.logger.debug("Added %d default variables", len(get_default_variables()))
 
     def _check_mission_var_duplicates(self):
         """
@@ -260,7 +260,7 @@ class Processor:
         if isinstance(vars_to_remove, str):
             vars_to_remove = [vars_to_remove]
 
-        self.logger.info("Removing %d variables: %s", len(vars_to_remove), vars_to_remove)
+        self.logger.debug("Removing %d variables: %s", len(vars_to_remove), vars_to_remove)
         initial_count = len(self.mission_vars)
 
         # Filter out the variables to remove
@@ -345,27 +345,47 @@ class Processor:
 
     def _copy_cache_files(self):
         """
-        Move the cache files to the working directory
+        Move the cache files to the working directory from both flight and science cards
         """
-        # Look for cache files in Flight_card/STATE/CACHE
-        cache_source = self.memory_card_copy_path / 'Flight_card' / 'STATE' / 'CACHE'
-        cache_dest = self.mission_folder_path / 'Flight_card' / 'STATE' / 'CACHE'
+        self.logger.info("Starting cache file copy operation")
 
-        if not cache_source.exists():
-            return
+        # Define cache source locations for both flight and science cards
+        cache_sources = [
+            self.memory_card_copy_path / 'Flight_card' / 'STATE' / 'CACHE',
+            self.memory_card_copy_path / 'Science_card' / 'STATE' / 'CACHE'
+        ]
 
+        cache_dest = self.mission_folder_path / 'CACHE'
+
+        # Create destination directory if it doesn't exist
         if not cache_dest.exists():
             cache_dest.mkdir(parents=True, exist_ok=True)
+            self.logger.debug("Created cache destination directory: %s", cache_dest)
 
-        for cache_file in cache_source.iterdir():
-            if cache_file.is_file():
-                dest_file = cache_dest / cache_file.name
-                # check if cache file already exists
-                if dest_file.exists() and not self.recopy_files:
-                    continue
-                # copy cache file
-                print(f'copying {cache_file} to {cache_dest}')
-                shutil.copy2(cache_file, dest_file)
+        copied_count = 0
+        skipped_count = 0
+
+        for cache_source in cache_sources:
+            if not cache_source.exists():
+                self.logger.debug("Cache source does not exist: %s", cache_source)
+                continue
+
+            self.logger.debug("Copying cache files from: %s", cache_source)
+
+            for cache_file in cache_source.iterdir():
+                if cache_file.is_file():
+                    dest_file = cache_dest / cache_file.name
+                    # check if cache file already exists
+                    if dest_file.exists() and not self.recopy_files:
+                        self.logger.debug("Skipping existing cache file: %s", cache_file.name)
+                        skipped_count += 1
+                        continue
+                    # copy cache file
+                    self.logger.debug('Copying cache file %s to %s', cache_file.name, cache_dest)
+                    shutil.copy2(cache_file, dest_file)
+                    copied_count += 1
+
+        self.logger.debug("Cache file copy complete. Copied: %d, Skipped: %d", copied_count, skipped_count)
 
     def _get_dbd_files(self,as_string=False):
         """
@@ -385,7 +405,7 @@ class Processor:
         self._copy_cache_files()
 
         filenames = self._get_dbd_files(as_string=True)
-        self.logger.info("Found %d DBD files", len(filenames))
+        self.logger.debug("Found %d DBD files", len(filenames))
         self.logger.debug("DBD files: %s%s", [Path(f).name for f in filenames[:5]], '...' if len(filenames) > 5 else '')
 
         cacheDir = self._get_cache_files_path()
