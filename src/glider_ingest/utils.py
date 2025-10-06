@@ -29,14 +29,14 @@ def print_time(message: str) -> None:
     whole_message = f'{message}: {current_time}'
     # Print the final message
     print(whole_message)
-    
+
 
 def f_print(*args, return_string=False):
     # Get the current frame and extract the calling frame
-    frame = inspect.currentframe().f_back
+    frame = inspect.currentframe().f_back  #type: ignore
     # Combine locals and globals for name lookup
-    all_vars = {**frame.f_globals, **frame.f_locals}
-    
+    all_vars = {**frame.f_globals, **frame.f_locals}  #type: ignore
+
     results = []
     for var in args:
         # Find all variable names that match the value of `var`
@@ -46,7 +46,7 @@ def f_print(*args, return_string=False):
             results.append(f"{var_names[0]} = {var}")
         else:
             results.append(f"Could not determine variable name for value: {var}")
-    
+
     # Return or print the result
     if return_string:
         return ", ".join(results)
@@ -145,7 +145,7 @@ def get_polygon_coords(longitude:np.ndarray,latitude:np.ndarray,lat_max:float, l
 
     Notes
     -----
-    The polygon is constructed based on the northmost, eastmost, southmost, 
+    The polygon is constructed based on the northmost, eastmost, southmost,
     and westmost points where latitude is below 29.5.
     """
 
@@ -161,7 +161,7 @@ def get_polygon_coords(longitude:np.ndarray,latitude:np.ndarray,lat_max:float, l
     # Combine points into WKT polygon format
     return f"POLYGON (({polygon_1}, {polygon_2}, {polygon_3}, {polygon_4}, {polygon_5}))"
 
-def get_wmo_id(glider_id: str) -> str:
+def get_wmo_id(glider_id: str | int) -> str:
     """
     Extract the WMO ID from a glider ID.
     """
@@ -170,3 +170,34 @@ def get_wmo_id(glider_id: str) -> str:
     glider_ids = {'199': 'Dora', '307': 'Reveille', '308': 'Howdy', '540': 'Stommel', '541': 'Sverdrup', '1148': 'unit_1148'}
     wmo_ids = {'199': 'unknown', '307': '4801938', '308': '4801915', '540': '4801916', '541': '4801924', '1148': '4801915'}
     return wmo_ids[glider_id]
+
+
+def setup_logging(level: str = 'INFO') -> None:
+    """Configure logging for the package. With specific name and format.
+
+    Parameters
+    ----------
+    level : str, optional
+        The logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL), by default 'INFO'
+    """
+    import logging
+
+    # Normalize the level to uppercase
+    level = level.upper()
+
+    # Validate the log level
+    valid_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
+    if level not in valid_levels:
+        raise ValueError(f"Invalid log level: {level}. Must be one of {valid_levels}")
+
+    logger = logging.getLogger('glider_ingest')
+
+    # Only add handler if it doesn't exist
+    if not logger.hasHandlers():
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+    # Always update the log level (this allows dynamic level changes)
+    logger.setLevel(getattr(logging, level))

@@ -16,7 +16,7 @@ def main():
     processor.mission_vars['m_lat'].short_name = 'lat'
     processor.mission_vars['m_lon'].short_name = 'lon'
     # Add custom variables to the mission_data container using strings
-    processor.add_variables(variables=['m_water_vx','m_water_vy'])
+    processor.add_mission_vars(mission_vars=['m_water_vx','m_water_vy'])
     # Save to a netcdf file
     processor.save()
 

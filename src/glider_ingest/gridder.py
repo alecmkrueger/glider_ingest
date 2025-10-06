@@ -44,8 +44,8 @@ class Gridder:
     pres: np.ndarray = field(init=False)
     lat: np.ndarray = field(init=False)
     lon: np.ndarray = field(init=False)
-    xx: np.ndarray = field(init=False)
-    yy: np.ndarray = field(init=False)
+    xx: int = field(init=False)
+    yy: int = field(init=False)
     int_time: np.ndarray = field(init=False)
     int_pres: np.ndarray = field(init=False)
     data_arrays: dict = field(init=False)
@@ -107,8 +107,11 @@ class Gridder:
         end_time = pd.to_datetime(self.time[-1]).replace(hour=end_hour, minute=0, second=0)
 
         # Generate an array of evenly spaced time intervals.
-        self.int_time = np.arange(start_time, end_time + np.timedelta64(self.interval_h, 'h'),
-                                  np.timedelta64(self.interval_h, 'h')).astype('datetime64[ns]')
+        self.int_time = np.arange(
+            start_time,
+            end_time + np.timedelta64(int(self.interval_h), 'h'),
+            np.timedelta64(int(self.interval_h), 'h')
+        ).astype('datetime64[ns]')
 
         # Create evenly spaced pressure intervals.
         start_pres = 0  # Start pressure in dbar.
@@ -140,7 +143,7 @@ class Gridder:
         This method assigns long names, units, valid ranges, and other metadata to the
         gridded dataset variables for better interpretation and standardization.
         '''
-        from glider_ingest.gridded_attrs import generate_variables
+        from .gridded_attrs import generate_variables
         variables = generate_variables(self.interval_h,self.interval_p)
         for var_short_name,variable in variables.items():
             if var_short_name in self.ds_gridded.data_vars.keys():
@@ -193,15 +196,10 @@ class Gridder:
             - Interpolate each variable onto the fixed pressure grid
         """
         for ttt in range(self.xx):
-            print(f"Processing time slice {ttt+1}/{self.xx}")
-            print(f"Time slice start: {self.int_time[ttt]}, end: {self.int_time[ttt+1]}")
-
             tds = self.ds.sel(time=slice(str(self.int_time[ttt]), str(self.int_time[ttt+1]))).copy()
-            print(f"Time slice length: {len(tds.time)}")
 
             # Skip empty time slices
             if len(tds.time) == 0:
-                print(f"Skipping empty time slice {ttt+1}")
                 # Fill with NaN values for this time slice
                 for data_array_key in self.data_arrays.keys():
                     self.data_arrays[data_array_key][ttt,:] = np.nan
@@ -211,7 +209,6 @@ class Gridder:
 
             for data_array_key, value in self.data_arrays.items():
                 tds_key = data_array_key.replace('int_', '')
-                print(f"Interpolating variable: {tds_key} for time slice {ttt+1}/{self.xx}")
 
                 # Check if the variable exists in the time slice
                 if tds_key in tds:
@@ -261,7 +258,6 @@ class Gridder:
         for data_array_key, value in self.data_arrays.items():
             base_key = data_array_key.replace('int_', '')
             if base_key in self.variable_names:
-                # print('adding gridded data to xarray', base_key)
                 gridded_var = f'g_{base_key}'
                 self.ds_gridded[gridded_var] = xr.DataArray(
                     value,

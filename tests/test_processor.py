@@ -10,31 +10,30 @@ from glider_ingest.variable import Variable
 
 class TestProcessor(unittest.TestCase):
     def setUp(self):
-        self.memory_card_copy_path = Path('test_data/memory_card_copy')
-        self.working_dir = Path('test_data/working_dir')
+        self.memory_card_copy_path = Path('test_data/memory_card_copy').resolve()
+        self.working_dir = Path('test_data/working_dir').resolve()
         self.processor = Processor(
             memory_card_copy_path=self.memory_card_copy_path,
             working_dir=self.working_dir,
             mission_num='46',
         )
-        
+
     def test_glider_name(self):
         processor = Processor(
             memory_card_copy_path=self.memory_card_copy_path,
             working_dir=self.working_dir,
             mission_num='46',
-            glider_id='307'
         )
         self.assertEqual(processor.glider_name,'Reveille',processor.glider_name)
-        
+
     def test_check_mission_var_duplicates(self):
         # Create a list of variables with duplicate short names
         vars = [
             Variable(short_name='temp', long_name='Temperature'),
             Variable(short_name='temp', long_name='Temperature')]
-        
+
         self.processor.add_mission_vars(vars)
-        
+
     def test_add_mission_vars_all_str(self):
         # Test adding mission variables with all strings
         self.processor.add_mission_vars(['temp', 'salinity', 'pressure'])
@@ -44,7 +43,7 @@ class TestProcessor(unittest.TestCase):
         # Setup source cache files
         cache_source = self.memory_card_copy_path / 'Flight_card' / 'STATE' / 'CACHE'
         cache_source.mkdir(parents=True, exist_ok=True)
-        
+
         # Create a test file with content
         test_file = cache_source / 'test_cache.dat'
         test_content = 'test cache content'
@@ -65,16 +64,16 @@ class TestProcessor(unittest.TestCase):
 
         # Verify directory was created
         self.assertTrue(dest_path.exists())
-        
+
         # Verify file was copied with correct content
         copied_file = dest_path / 'test_cache.dat'
         self.assertTrue(copied_file.exists())
         with open(copied_file, 'r') as f:
             copied_content = f.read()
         self.assertEqual(copied_content, test_content)
-        
+
         # Verify print message
-        self.assertIn(f'Coping {test_file} to {dest_path}', output)
+        self.assertIn(f'copying {test_file} to {dest_path}', output)
 
 
     def test_copy_cache_files_creates_directory(self):
@@ -151,7 +150,7 @@ class TestProcessor(unittest.TestCase):
     def test_get_mission_variables(self):
         test_vars = [Variable(data_source_name='test1'), Variable(data_source_name='test2')]
         self.processor.mission_vars = test_vars
-        
+
         variables = self.processor._get_mission_variables()
         self.assertEqual(len(variables), 2)
         self.assertEqual(variables[0].data_source_name, 'test1')
@@ -161,7 +160,7 @@ class TestProcessor(unittest.TestCase):
             'time': [1577836800, 1577923200],  # 2020-01-01, 2020-01-02
             'value': [1, 2]
         })
-        
+
         formatted_df = self.processor._format_time(test_df)
         self.assertTrue(pd.api.types.is_datetime64_any_dtype(formatted_df['time']))
         self.assertEqual(len(formatted_df), 2)
@@ -169,10 +168,10 @@ class TestProcessor(unittest.TestCase):
     def test_update_dataframe_columns(self):
         test_var = Variable(data_source_name='test_source', short_name='test_short')
         self.processor.mission_vars = [test_var]
-        
+
         test_df = pd.DataFrame({'test_source': [1, 2, 3]})
         updated_df = self.processor._update_dataframe_columns(test_df)
-        
+
         self.assertIn('test_short', updated_df.columns)
         self.assertNotIn('test_source', updated_df.columns)
 

@@ -1,17 +1,19 @@
-from glider_ingest.variable import Variable
-from glider_ingest.utils import get_polygon_coords,get_polygon_bounds
-
-import numpy as np 
+# type: ignore
+import numpy as np
 import pandas as pd
 import uuid
 
+from .variable import Variable
+from .utils import get_polygon_coords,get_polygon_bounds
+
+
 # Flight Variables
 def get_default_variables(only_sci_variables:bool = False, only_eng_variables:bool = False):
-    
+
     if only_eng_variables and only_sci_variables:
         raise ValueError('Cannot specify both only sci and eng variables, if you want all defaults, set all to False')
-    
-    
+
+
     m_pressure = Variable(
         data_source_name='m_pressure',
         short_name='m_pressure',
@@ -253,7 +255,7 @@ def get_default_variables(only_sci_variables:bool = False, only_eng_variables:bo
         valid_min=0.0,
         to_grid=True
     )
-    
+
     all_default_variables = [
         m_pressure,
         m_water_depth,
@@ -288,44 +290,44 @@ def get_default_variables(only_sci_variables:bool = False, only_eng_variables:bo
         m_latitude,
         m_longitude,
     ]
-    
+
     # eng_default_variables = [
     #     m_water_depth,
     #     m_latitude,
     #     m_longitude,
     # ]
-    
+
     if only_sci_variables:
         return sci_default_variables
     if only_eng_variables:
         return eng_default_variables
-    
+
     return all_default_variables
 
 def get_global_attrs(wmo_id:str,mission_title:str,longitude:np.ndarray,latitude:np.ndarray,depth:np.ndarray,time:np.ndarray):
-    
+
     # Calculate spatial bounds and resolution
     lat_max, lat_min, lon_max, lon_min = get_polygon_bounds(latitude=latitude, longitude=longitude)
     geospatial_bounds = get_polygon_coords(longitude=longitude, latitude=latitude,
                                            lat_max=lat_max, lat_min=lat_min, lon_max=lon_max, lon_min=lon_min)
-    
+
     geospatial_lat_resolution = "{:.4e}".format(abs(np.nanmean(np.diff(latitude))))+ ' degree'
     geospatial_lon_resolution = "{:.4e}".format(abs(np.nanmean(np.diff(longitude))))+ ' degree'
-    
+
     vertical_min = np.nanmin(depth[np.where(depth>0)])
     vertical_max = np.nanmax(depth)
-    
+
     # Get current time
     current_time = pd.Timestamp.now().strftime(format='%Y-%m-%d %H:%M:%S')
     # Get dataset time range
     time_coverage_start = time[-1]
     time_coverage_end = time[-1]
     time_coverage_duration = f"PT{str((time_coverage_end - time_coverage_start) / np.timedelta64(1, 's'))}S"
-    
+
     # Get uuid
     uuid_str = str(uuid.uuid4())
-    
-    
+
+
     global_attrs = {'Conventions': 'CF-1.6, COARDS, ACDD-1.3',
                     'acknowledgment': ' ',
                     'cdm_data_type': 'Profile',
@@ -394,5 +396,5 @@ def get_global_attrs(wmo_id:str,mission_title:str,longitude:np.ndarray,latitude:
                     'time_coverage_start': str(time_coverage_start)[:19],
                     'time_coverage_end': str(time_coverage_end)[:19],
                     'time_coverage_duration': time_coverage_duration}
-    
+
     return global_attrs

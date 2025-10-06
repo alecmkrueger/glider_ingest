@@ -1,4 +1,4 @@
-from glider_ingest.variable import Variable
+from .variable import Variable
 
 def generate_variables(interval_h, interval_p):
     g_temperature = Variable(
@@ -146,8 +146,8 @@ def generate_variables(interval_h, interval_p):
     )
 
     # Create a list of variables that we initilized above
-    variables = [g_temperature, g_salinity, g_conductivity, g_density, g_turbidity, 
+    variables = [g_temperature, g_salinity, g_conductivity, g_density, g_turbidity,
                  g_cdom, g_chlorophyll, g_oxygen, g_hc, g_phc, g_sp, g_depth]
     # Create a dictionary of variables that we initilized above
-    attrs_dict = {value.short_name:value for value in variables} 
+    attrs_dict = {value.short_name:value for value in variables}
     return attrs_dict

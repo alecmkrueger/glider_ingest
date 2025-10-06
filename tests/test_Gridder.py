@@ -12,7 +12,7 @@ class TestGridder(unittest.TestCase):
         temperature = np.array([20.0, 18.0])
         salinity = np.array([35.0, 35.2])
         density = np.array([1024.0, 1025.0])
-        
+
         self.test_dataset = xr.Dataset(
             data_vars={
                 'pressure': ('time', pressure),
@@ -24,7 +24,7 @@ class TestGridder(unittest.TestCase):
             },
             coords={'time': times}
         )
-        
+
     def test_gridder_initialization(self):
         gridder = Gridder(ds_mission=self.test_dataset)
         self.assertIsInstance(gridder, Gridder)
@@ -48,7 +48,7 @@ class TestGridder(unittest.TestCase):
     def test_create_gridded_dataset(self):
         gridder = Gridder(ds_mission=self.test_dataset)
         gridder.create_gridded_dataset()
-        
+
         self.assertIsInstance(gridder.ds_gridded, xr.Dataset)
         self.assertIn('g_temperature', gridder.ds_gridded)
         self.assertIn('g_salinity', gridder.ds_gridded)
@@ -63,7 +63,7 @@ class TestGridder(unittest.TestCase):
         gridder.create_gridded_dataset()
         skip_vars = ['g_phc']
         vars_to_test = [var for var in gridder.ds_gridded.data_vars if var not in skip_vars]
-        
+
         # Test each gridded variable
         for var in vars_to_test:
             # print(f"Testing variable: {var}")
