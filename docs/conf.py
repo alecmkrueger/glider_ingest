@@ -33,7 +33,7 @@ extensions = [
 ]
 
 # AutoAPI configuration
-autoapi_dirs = ['../src']
+autoapi_dirs = ['../src/glider_ingest']
 autoapi_type = 'python'
 autoapi_member_order = 'groupwise'
 autoapi_ignore = [
