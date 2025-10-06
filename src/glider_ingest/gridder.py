@@ -14,7 +14,7 @@ class Gridder:
 
     This class provides methods for processing oceanographic data, creating time and pressure grids,
     interpolating data onto those grids, and adding metadata attributes to the gridded dataset.
-    
+
     Depends on the dataset having attributes
     ----------------------------------------
 
@@ -58,13 +58,13 @@ class Gridder:
         extracting dataset dimensions, and initializing the time-pressure grid.
         '''
         self.ds = self.ds_mission.copy()
-        
+
         # Identify indexes of valid (non-NaN) pressure values.
         tloc_idx = np.where(~np.isnan(self.ds['pressure']))[0]
-        
+
         # Select times corresponding to valid pressures.
         self.ds = self.ds.isel(time=tloc_idx)
-        
+
         # Extract variable names and time/pressure values.
         self.variable_names = list(self.ds.data_vars.keys())
         self.time = self.ds.time.values
@@ -91,7 +91,7 @@ class Gridder:
         '''
         if len(values) <= expected_length:
             raise ValueError(f'Not enough values to grid {values}')
-        
+
     def initalize_grid(self):
         '''
         Creates a time-pressure grid for interpolation.
@@ -128,7 +128,7 @@ class Gridder:
 
         # Initialize data arrays with NaN values
         self.data_arrays = {
-            var: np.full((self.xx, self.yy), np.nan) 
+            var: np.full((self.xx, self.yy), np.nan)
             for var in var_names
         }
 
@@ -149,60 +149,81 @@ class Gridder:
     def _process_time_slice(self, tds):
         """
         Process a single time slice of data.
-        
+
         Steps:
             - Sort data by pressure
-            - Convert time coordinates to datetime64
-            - Set time values to pressure values
+            - Replace time coordinate with pressure values for interpolation
         """
         if len(tds.time) == 0:
             return tds
-            
+
         tds = tds.sortby('pressure')
-        tds = tds.assign_coords(time=('time', tds.time.values.astype('datetime64[ns]')))
-        tds['time'] = tds['pressure'].values
+        # Replace time coordinate with pressure values for interpolation
+        tds = tds.assign_coords(time=('time', tds['pressure'].values))
         return self._handle_pressure_duplicates(tds)
 
     def _handle_pressure_duplicates(self, tds):
         """
         Handle duplicate pressure values by adding tiny offsets.
-        
+
         Steps:
-            - Identify duplicate pressure values
+            - Identify duplicate time coordinate values (which are pressure values)
             - Add small incremental offsets to make values unique
-            - Update time values to match new pressure values
+            - Update time coordinate to match new pressure values
         """
-        unique_pressures, indices, counts = np.unique(tds['pressure'], return_index=True, return_counts=True)
-        duplicates = unique_pressures[counts > 1]
-        
-        for pressure in duplicates:
-            indices = np.where(tds['pressure'] == pressure)[0]
-            for idx in indices:
-                tds['pressure'][idx] = pressure + 0.000000000001 * idx
-        
-        tds['time'] = tds['pressure'].values
+        time_coords = tds.time.values.copy()
+        unique_times, indices, counts = np.unique(time_coords, return_index=True, return_counts=True)
+        duplicates = unique_times[counts > 1]
+
+        for time_val in duplicates:
+            indices = np.where(time_coords == time_val)[0]
+            for i, idx in enumerate(indices):
+                time_coords[idx] = time_val + 0.000000000001 * i
+
+        # Update time coordinate with the modified values
+        tds = tds.assign_coords(time=('time', time_coords))
         return tds
 
     def _interpolate_variables(self):
         """
         Interpolate variables to fixed pressure grid.
-        
+
         Steps:
             - Select and process time slices
             - Interpolate each variable onto the fixed pressure grid
         """
         for ttt in range(self.xx):
+            print(f"Processing time slice {ttt+1}/{self.xx}")
+            print(f"Time slice start: {self.int_time[ttt]}, end: {self.int_time[ttt+1]}")
+
             tds = self.ds.sel(time=slice(str(self.int_time[ttt]), str(self.int_time[ttt+1]))).copy()
+            print(f"Time slice length: {len(tds.time)}")
+
+            # Skip empty time slices
+            if len(tds.time) == 0:
+                print(f"Skipping empty time slice {ttt+1}")
+                # Fill with NaN values for this time slice
+                for data_array_key in self.data_arrays.keys():
+                    self.data_arrays[data_array_key][ttt,:] = np.nan
+                continue
+
             tds = self._process_time_slice(tds)
-            
+
             for data_array_key, value in self.data_arrays.items():
                 tds_key = data_array_key.replace('int_', '')
-                self.data_arrays[data_array_key][ttt,:] = tds[tds_key].interp(time=self.int_pres)
-        
+                print(f"Interpolating variable: {tds_key} for time slice {ttt+1}/{self.xx}")
+
+                # Check if the variable exists in the time slice
+                if tds_key in tds:
+                    self.data_arrays[data_array_key][ttt,:] = tds[tds_key].interp(time=self.int_pres)
+                else:
+                    # Fill with NaN if variable doesn't exist
+                    self.data_arrays[data_array_key][ttt,:] = np.nan
+
     def _calculate_derived_quantities(self):
         """
         Calculate derived oceanographic quantities.
-        
+
         Computed quantities:
             - Absolute salinity, conservative temperature, and potential temperature
             - Specific heat capacity, spiciness, and depth
@@ -216,18 +237,18 @@ class Gridder:
         cp = gsw.cp_t_exact(sa, self.data_arrays['int_temperature'], self.grid_pres) * 0.001
         dep = gsw.z_from_p(self.grid_pres, self.lat, geo_strf_dyn_height=0, sea_surface_geopotential=0)
         spc = gsw.spiciness0(sa, ct)
-        
+
         dz = self.interval_p
         hc = dz * cp * self.data_arrays['int_temperature'] * self.data_arrays['int_density']
         phc = dz * cp * (self.data_arrays['int_temperature'] - 26) * self.data_arrays['int_density']
         phc[phc < 0] = np.nan
-        
+
         return hc, phc, spc, dep
 
     def _create_output_dataset(self, hc, phc, spc, dep):
         """
         Create the final xarray Dataset with all variables.
-        
+
         Output variables:
             - Gridded variables with `'g_'` prefix
             - g_hc: Heat content in kJ cm^{-2}
@@ -236,7 +257,7 @@ class Gridder:
             - g_depth: Depth in meters
         """
         self.ds_gridded = xr.Dataset()
-        
+
         for data_array_key, value in self.data_arrays.items():
             base_key = data_array_key.replace('int_', '')
             if base_key in self.variable_names:
@@ -246,14 +267,14 @@ class Gridder:
                     value,
                     [('g_time', self.int_time[1:]), ('g_pres', self.int_pres)]
                 )
-        
+
         derived_vars = {
             'g_hc': hc * 10**-4,
             'g_phc': phc * 10**-4,
             'g_sp': spc,
             'g_depth': dep
         }
-        
+
         for var_name, data in derived_vars.items():
             self.ds_gridded[var_name] = xr.DataArray(
                 data,
@@ -263,13 +284,13 @@ class Gridder:
     def create_gridded_dataset(self) -> xr.Dataset:
         """
         Process and interpolate time-sliced data to create a gridded dataset.
-        
+
         This method orchestrates the complete gridding process by:
             1. Interpolating variables onto a fixed pressure grid
             2. Computing derived oceanographic quantities
             3. Creating the final dataset with standardized dimensions
             4. Adding metadata attributes
-        
+
         Note:
             Requires the `gsw` library for oceanographic calculations and assumes
             that `self.data_arrays` and `self.int_time` are properly initialized.
