@@ -50,10 +50,13 @@ autoapi_generate_api_docs = True
 
 # Additional AutoAPI settings to handle duplicates and improve output
 autoapi_python_class_content = 'class'
-autoapi_add_toctree_entry = True
+autoapi_add_toctree_entry = False  # We're adding it manually to the toctree
 
 # Disable autosummary to prevent conflicts with autoapi
 autosummary_generate = False
+
+# Ensure AutoAPI root doc is generated
+autoapi_root = 'autoapi'
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
